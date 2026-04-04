@@ -1,11 +1,11 @@
-const path = require("path");
+const path = require('path');
 
 const nextConfig = {
-  transpilePackages: ["@repo/api-client", "@repo/types", "@repo/validators"],
+  transpilePackages: ['@repo/api-client', '@repo/types', '@repo/validators'],
   webpack: (config) => {
-    config.resolve.alias["@tanstack/react-query"] = path.resolve(
+    config.resolve.alias['@tanstack/react-query'] = path.resolve(
       __dirname,
-      "../../node_modules/@tanstack/react-query"
+      '../../node_modules/@tanstack/react-query'
     );
     return config;
   },

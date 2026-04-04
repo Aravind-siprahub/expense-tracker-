@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useUsers } from "@repo/api-client";
-import { Card } from "../components/Card";
+import { useUsers } from '@repo/api-client';
+import { Card } from '../components/Card';
 
 export default function Page() {
   const { data: users = [], isLoading } = useUsers();
@@ -24,7 +24,7 @@ export default function Page() {
             {users.map((user) => (
               <Card
                 key={user.id}
-                title={user.name ?? "—"}
+                title={user.name ?? '—'}
                 subtitle={user.email}
               />
             ))}

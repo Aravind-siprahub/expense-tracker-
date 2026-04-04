@@ -56,6 +56,7 @@ yarn dev
 ## Commit Convention
 
 We use conventional commits:
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation changes

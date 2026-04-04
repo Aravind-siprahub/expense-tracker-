@@ -1,7 +1,7 @@
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { useUsers } from "@repo/api-client";
-import { Card } from "./components/Card";
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useUsers } from '@repo/api-client';
+import { Card } from './components/Card';
 
 export function AppContent() {
   const { data: users = [], isLoading } = useUsers();
@@ -24,7 +24,7 @@ export function AppContent() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ gap: 10 }}
         renderItem={({ item }) => (
-          <Card title={item.name ?? "—"} subtitle={item.email} />
+          <Card title={item.name ?? '—'} subtitle={item.email} />
         )}
       />
       <StatusBar style="auto" />

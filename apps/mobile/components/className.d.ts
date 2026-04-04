@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode } from 'react';
 
 // Augments react-native component props with className so @repo/ui components
 // type-check correctly in both Next.js (react-native-web) and Expo (NativeWind).
@@ -6,7 +6,7 @@ import type { ComponentType, ReactNode } from "react";
 // Also re-declares Pressable here because react-native-web (the webpack alias
 // target for react-native in Next.js) does not expose Pressable in its TypeScript
 // definitions even though it exists at runtime.
-declare module "react-native" {
+declare module 'react-native' {
   interface ViewProps {
     className?: string;
   }

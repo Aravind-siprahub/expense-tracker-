@@ -7,7 +7,7 @@ interface CardProps {
 export function Card({ title, subtitle, className }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${className ?? ""}`}
+      className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${className ?? ''}`}
     >
       <h3 className="text-base font-semibold text-gray-900">{title}</h3>
       {subtitle ? (

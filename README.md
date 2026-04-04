@@ -11,6 +11,7 @@
 ## The Problem
 
 Building full-stack applications with web and mobile frontends requires:
+
 - Managing separate repositories or messy codebases
 - Duplicating types, API logic, and configurations
 - Version conflicts between shared dependencies
@@ -22,7 +23,8 @@ Building full-stack applications with web and mobile frontends requires:
 ✅ **Native Development** - Each platform uses optimal tech (Next.js for web, Expo for mobile)  
 ✅ **Shared Styling** - Consistent design system via shared Tailwind config  
 ✅ **Type Safety** - End-to-end TypeScript from database to UI  
-✅ **Fast, Cached Builds** - Turborepo inte  
+✅ **Fast, Cached Builds** - Turborepo inte
+
 - 💡 Submit pull requests - see [CONTRIBUTING.md](CONTRIBUTING.md)
 - ⭐ Star the repo if you find it useful
 - 💬 Join [Discussions](../../discussions) to share ideas
@@ -30,6 +32,7 @@ Building full-stack applications with web and mobile frontends requires:
 **First-time contributors welcome!** Check out issues labeled [`good first issue`](../../issues?q=label%3A%22good+first+issue%22).
 
 This is an open-source project! Feel free to:
+
 - 🍴 Fork the repository and experiment
 - 🐛 Report issues or suggest improvements
 - 💡 Submit pull requests with enhancements
@@ -135,6 +138,7 @@ yarn dev
 ```
 
 This will start:
+
 - 🌐 **Web** app on [http://localhost:3000](http://localhost:3000)
 - 📱 **Mobile** app with Expo (scan QR code with Expo Go)
 - 🔧 **Backend** API on [http://localhost:3001](http://localhost:3001)
@@ -179,12 +183,14 @@ yarn install
 **What gets cleaned:**
 
 `yarn clean`:
+
 - All `node_modules` (root + workspaces)
 - Build artifacts (`.next`, `dist`, `.turbo`)
 - Native folders (`android/`, `ios/`)
 - Cache files (`.expo`, metro cache)
 
 `yarn clean:all`:
+
 - Everything from `yarn clean`
 - Yarn cache files
 - `yarn.lock`
