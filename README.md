@@ -228,20 +228,19 @@ yarn workspace @repo/db db:studio      # Open Prisma Studio
 ```
 stackweave/
 ├── apps/
-│   ├── web/          # Next.js web app
-│   ├── mobile/       # Expo mobile app
+│   ├── web/             # Next.js web app
 │   │   └── components/  # Web-specific UI components
-│   ├── mobile/       # Expo mobile app
+│   ├── mobile/          # Expo mobile app
 │   │   └── components/  # Mobile-specific UI components
-│   └── backend/      # Express API server
+│   └── backend/         # Express API server
 ├── packages/
-│   ├── types/        # Shared TypeScript types
-│   ├── db/           # Prisma schema & client
-│   ├── api-client/   # API client
-│   ├── validators/   # Validation schemas
-│   └── tailwind-config/ # Shared theme & colorbles
-├── package.json      # Root workspace config
-└── turbo.json        # Turborepo configuration
+│   ├── types/           # Shared TypeScript types
+│   ├── db/              # Prisma schema & client
+│   ├── api-client/      # API client
+│   ├── validators/      # Validation schemas
+│   └── tailwind-config/ # Shared theme & colors
+├── package.json         # Root workspace config
+└── turbo.json           # Turborepo configuration
 ```
 
 ## 🔧 Technology Stack
