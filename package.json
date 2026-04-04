@@ -1,0 +1,30 @@
+{
+  "name": "stackweave",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "yarn@4.1.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "android": "yarn workspace @repo/mobile android",
+    "ios": "yarn workspace @repo/mobile ios",
+    "clean": "./scripts/clean.sh",
+    "clean:all": "./scripts/clean-all.sh",
+    "postinstall": "yarn workspace @repo/db db:generate"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "turbo": "^2.9.3"
+  },
+  "resolutions": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0"
+  }
+}

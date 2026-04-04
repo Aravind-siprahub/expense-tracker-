@@ -1,0 +1,33 @@
+{
+  "name": "@repo/mobile",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "clean": "rm -rf .expo android ios 2>/dev/null; find . -maxdepth 1 -name '.metro-health-check*' -delete 2>/dev/null; exit 0"
+  },
+  "dependencies": {
+    "@repo/api-client": "workspace:*",
+    "@repo/types": "workspace:*",
+    "@tanstack/react-query": "^5.96.2",
+    "expo": "~55.0.11",
+    "expo-status-bar": "~55.0.0",
+    "nativewind": "^4.1.23",
+    "react": "19.2.0",
+    "react-native": "0.83.0",
+    "react-native-reanimated": "^4.3.0",
+    "react-native-worklets": "^0.8.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@react-native/metro-config": "^0.83.0",
+    "@repo/tailwind-config": "workspace:*",
+    "@types/react": "~19.2.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.9.2"
+  },
+  "private": true
+}

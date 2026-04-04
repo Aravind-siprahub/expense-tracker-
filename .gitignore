@@ -1,0 +1,62 @@
+# ── Dependencies ───────────────────────────────────────────────────────────
+node_modules/
+.pnp/
+.pnp.*
+
+# ── Yarn ───────────────────────────────────────────────────────────────────
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/patches/
+yarn-debug.*
+yarn-error.*
+npm-debug.*
+
+# ── Environment ────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ── Next.js ────────────────────────────────────────────────────────────────
+.next/
+out/
+web-build/
+
+# ── Expo / React Native ────────────────────────────────────────────────────
+.expo/
+expo-env.d.ts
+.kotlin/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*.orig.*
+
+# ── Build outputs ──────────────────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+
+# ── Turbo ──────────────────────────────────────────────────────────────────
+.turbo/
+
+# ── Metro ──────────────────────────────────────────────────────────────────
+.metro-health-check*
+
+# ── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editor ─────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
