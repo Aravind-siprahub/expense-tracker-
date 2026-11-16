@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Clean script for StackWeave monorepo
+# Clean script for the Family Expense Tracker monorepo
 # Safe cleanup that handles missing files gracefully
 
 set +e  # Don't exit on errors
 
-echo "🧹 Cleaning StackWeave..."
+echo "🧹 Cleaning Family Expense Tracker..."
 
 # Clean root-level build artifacts
 echo "  → Cleaning root build artifacts..."

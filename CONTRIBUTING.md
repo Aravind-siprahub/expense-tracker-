@@ -1,72 +1,35 @@
-# Contributing to StackWeave
+# Contributing to Family Expense Tracker
 
-Thank you for considering contributing to StackWeave! We welcome contributions from everyone.
+Thanks for helping improve the project. Bug reports, ideas and pull requests are welcome.
 
-## How to Contribute
+## Reporting a bug or suggesting a feature
 
-### 🐛 Found a Bug?
+Open an issue and include:
 
-- Check if it's already reported in [Issues](../../issues)
-- If not, create a new issue with:
-  - Clear title and description
-  - Steps to reproduce
-  - Expected vs actual behavior
-  - Your environment (OS, Node version, etc.)
+- A clear title and description
+- Steps to reproduce (for bugs), and what you expected to happen
+- Your environment: operating system, Node version, and whether you used the web app or the mobile app
 
-### 💡 Have an Idea?
+## Making a change
 
-- Open an issue to discuss it first
-- We love feature requests and improvements!
+1. Fork the repository and create a branch, for example `fix/budget-alert` or `feat/export-csv`.
+2. Set the project up by following [Getting started](README.md#getting-started).
+3. Make your change. Keep it focused, and follow the patterns already in the code.
+4. Check it before you push:
+   ```bash
+   corepack yarn format
+   corepack yarn build
+   ```
+   Also run a TypeScript check in the app you changed, for example `npx tsc --noEmit` inside `apps/web`, `apps/backend` or `apps/mobile`.
+5. Commit, push and open a pull request describing what changed and how you tested it.
 
-### 🔧 Want to Fix Something?
+## Guidelines
 
-1. **Fork the repository**
-2. **Create a branch**: `git checkout -b fix/your-fix-name`
-3. **Make your changes**
-4. **Test thoroughly**: `yarn clean && yarn install && yarn dev`
-5. **Commit**: `git commit -m "fix: description of fix"`
-6. **Push**: `git push origin fix/your-fix-name`
-7. **Open a Pull Request**
+- Use TypeScript for all code.
+- Store money as integer paise, never as decimals.
+- Every API route that touches family data must check that the caller belongs to that family.
+- Never commit secrets. `.env` files are ignored by git; put new settings in `.env.example` with a placeholder value.
 
-## Development Setup
+## Commit messages
 
-```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/stackweave.git
-cd stackweave
-
-# Install dependencies
-yarn install
-
-# Setup database
-createdb stackweave
-yarn workspace @repo/db db:migrate
-
-# Start development
-yarn dev
-```
-
-## Code Style
-
-- TypeScript for all code
-- Follow existing patterns
-- Run `yarn format` before committing
-- Run `yarn lint` to check for issues
-
-## Commit Convention
-
-We use conventional commits:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `chore:` Maintenance tasks
-- `refactor:` Code refactoring
-
-## Questions?
-
-Feel free to ask in [Discussions](../../discussions) or open an issue!
-
----
-
-Thank you for contributing! 🎉
+We use conventional commits: `feat:` for features, `fix:` for bug fixes, `docs:` for documentation, `refactor:` for code cleanup and `chore:` for maintenance.

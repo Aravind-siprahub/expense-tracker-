@@ -1,328 +1,206 @@
-# StackWeave
+# Family Expense Tracker
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
-[![Expo](https://img.shields.io/badge/Expo-55-000020)](https://expo.dev/)
-[![Turborepo](https://img.shields.io/badge/Turborepo-2.9-EF4444)](https://turbo.build/)
+A simple app that helps a family record daily expenses and manage a monthly budget in one place. Family members add their own spending, and everyone sees where the family money goes. One account works on the **web**, **Android** and **iPhone**, and everything stays in sync.
 
-> A production-ready, full-stack monorepo template with Next.js, Expo, and Express - built for speed and developer experience.
+All amounts are in Indian Rupees (₹). This is a small family app: it does not connect to bank accounts.
 
-## The Problem
+## What it does
 
-Building full-stack applications with web and mobile frontends requires:
+- **Accounts:** register, log in, edit your profile, change your password, and reset a forgotten password by email.
+- **Family groups:** create a family (you become the admin), invite members by email with a one-click join link, and remove members. A removed member's past expenses stay in the family records.
+- **Expenses:** amount, category, date, payment method (Cash, UPI, Card, Bank Transfer) and an optional note. Add, edit and delete, and filter history by date range, category and member.
+- **Categories:** 14 ready-made categories plus custom ones shared by the whole family. Only the admin can delete a custom category, and never one that already has expenses.
+- **Income:** record salary and other income per month, for any family member.
+- **Monthly budget:** set a total and a budget per category. Progress bars show used and remaining, and a category turns red with an alert when it goes over budget.
+- **Dashboard:** monthly income, expenses and balance, spending by category and by member, and recent transactions. Tap a category, member or transaction to open the matching list.
+- **Reports:** monthly summary, category chart, income vs. expenses, and a comparison with the previous month.
+- **Roles:** the admin can edit or delete any entry and manage budgets and members. Members can add entries and edit or delete their own.
+- **Live refresh:** screens refresh every 30 seconds and whenever you return to the app, so an expense added on a phone shows up on the web.
 
-- Managing separate repositories or messy codebases
-- Duplicating types, API logic, and configurations
-- Version conflicts between shared dependencies
-- Manual synchronization of schema changes across platforms
+## Tech stack
 
-## What StackWeave Solves
+| Part | Technology |
+| --- | --- |
+| Web app | Next.js 15, React 19, Tailwind CSS, TanStack Query |
+| Mobile app (Android and iOS) | React Native with Expo, NativeWind, React Navigation |
+| API | Node.js, Express, Zod validation |
+| Database | PostgreSQL (for example a free [Neon](https://neon.tech) project) with Prisma |
+| Email | Gmail SMTP (free) or [Resend](https://resend.com), with HTML templates |
+| Monorepo | Yarn 4 workspaces and Turborepo, TypeScript throughout |
 
-✅ **Single Source of Truth** - Shared types, API client, and database schema  
-✅ **Native Development** - Each platform uses optimal tech (Next.js for web, Expo for mobile)  
-✅ **Shared Styling** - Consistent design system via shared Tailwind config  
-✅ **Type Safety** - End-to-end TypeScript from database to UI  
-✅ **Fast, Cached Builds** - Turborepo inte
+## Project structure
 
-- 💡 Submit pull requests - see [CONTRIBUTING.md](CONTRIBUTING.md)
-- ⭐ Star the repo if you find it useful
-- 💬 Join [Discussions](../../discussions) to share ideas
-
-**First-time contributors welcome!** Check out issues labeled [`good first issue`](../../issues?q=label%3A%22good+first+issue%22).
-
-This is an open-source project! Feel free to:
-
-- 🍴 Fork the repository and experiment
-- 🐛 Report issues or suggest improvements
-- 💡 Submit pull requests with enhancements
-- ⭐ Star the repo if you find it useful
-
-Try it out and build something amazing!
-
----
-
-## 📦 What's Inside
-
-### Apps
-
-- **`apps/web`** - Next.js 15 web application with React 19
-- **`apps/mobile`** - Expo 55 mobile app (iOS & Android) with React Native
-- **`apps/backend`** - Express.js API server with TypeScript
-
-### Packages
-
-- **`@repo/types`** - Shared TypeScript types across all apps
-- **`@repo/db`** - Prisma database schema and client
-- **`@repo/api-client`** - Shared API client for frontend apps
-- **`@repo/validators`** - Shared validation schemas
-- **`@repo/tailwind-config`** - Shared Tailwind theme and color palette
-- **`@repo/typescript-config`** - Shared TypeScript configurations
-- **`@repo/eslint-config`** - Shared ESLint configurations
-
-## 🚀 Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Node.js** 22.x or higher ([Download](https://nodejs.org/))
-- **Yarn** 4.x (automatically installed via Corepack)
-- **PostgreSQL** (for database) ([Download](https://www.postgresql.org/download/))
-
-### For Mobile Development (Optional)
-
-- **Android Studio** with Android SDK ([Setup Guide](https://docs.expo.dev/workflow/android-studio-emulator/))
-- **Xcode** (macOS only, for iOS) ([Download](https://developer.apple.com/xcode/))
-- **Java Development Kit (JDK)** 17 or higher
-
-## 📥 Quick Installation
-
-### 1. Clone and Install
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd stackweave
-
-# Install dependencies
-yarn install
+```
+.
+├── apps/
+│   ├── backend/     Express API (routes, auth, email templates)
+│   ├── web/         Next.js web app
+│   └── mobile/      Expo mobile app
+├── packages/
+│   ├── db/          Prisma schema and client
+│   ├── validators/  Shared Zod schemas (used by the API)
+│   ├── api-client/  Starter API client (not used by the app screens yet)
+│   ├── types/       Shared TypeScript types (starter placeholder)
+│   └── ...          Shared ESLint, Tailwind and TypeScript configs
+└── .env.example     Template for the environment file
 ```
 
-The `postinstall` script will automatically run `prisma generate` to set up the database client.
+## Getting started
 
-### 2. Environment Setup
+### Prerequisites
 
-Copy the example environment file and configure your variables:
+- **Node.js 22 or newer**
+- **Corepack** (ships with Node). Run `corepack enable` once. This project uses Yarn 4.
+- A **PostgreSQL** database. The easiest option is a free [Neon](https://neon.tech) project.
+- For the mobile app: the **Expo Go** app on your phone, or an Android emulator / iOS simulator.
+
+> **Windows tip:** if you also have the old Yarn 1 installed globally, put `corepack` in front of every command (for example `corepack yarn install`) so the right Yarn version is used.
+
+### 1. Install dependencies
+
+```bash
+corepack yarn install
+```
+
+This also generates the Prisma client.
+
+### 2. Configure the environment
+
+Copy `.env.example` to `.env` in the repository root and fill it in:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your database credentials:
-
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/stackweave?schema=public"
-PORT=3001
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
-### 3. Database Setup
-
-**First, ensure PostgreSQL is running and create the database:**
+At minimum you need `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and a long random `JWT_SECRET`. To create a secret:
 
 ```bash
-# macOS (if using Homebrew)
-brew services start postgresql@16
-
-# Create the database
-createdb stackweave
-
-# Or using psql
-psql -U postgres -c "CREATE DATABASE stackweave;"
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 ```
 
-**Then run migrations to set up the schema:**
+`.env` is ignored by git. Never commit real secrets.
+
+### 3. Create the database tables
 
 ```bash
-# Run migrations (recommended)
-yarn workspace @repo/db db:migrate
-
-# Or push schema directly (for development)
-yarn workspace @repo/db db:push
+corepack yarn workspace @repo/db db:push
 ```
 
-### 4. Start Development
+### 4. Run the apps
+
+Open a terminal for each:
 
 ```bash
-# Start all apps in development mode
-yarn dev
+# API  ->  http://localhost:3001
+corepack yarn workspace @repo/backend dev
+
+# Web app  ->  http://localhost:3000
+corepack yarn workspace @repo/web dev
+
+# Mobile app (scan the QR code with Expo Go)
+corepack yarn workspace @repo/mobile start
 ```
 
-This will start:
+`corepack yarn dev` starts the API and web app together through Turborepo.
 
-- 🌐 **Web** app on [http://localhost:3000](http://localhost:3000)
-- 📱 **Mobile** app with Expo (scan QR code with Expo Go)
-- 🔧 **Backend** API on [http://localhost:3001](http://localhost:3001)
+Open http://localhost:3000, create an account, then create your family group.
 
-## 📱 Mobile Development
+### Running the mobile app on a real phone
 
-### Using Expo Go (Recommended for Quick Start)
-
-1. Install Expo Go on your device ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
-2. Run `yarn dev` and scan the QR code
-3. The app will load in Expo Go
-
-### Native Builds
-
-For native development with full features:
-
-```bash
-# Android
-yarn android
-
-# iOS (macOS only)
-yarn ios
-```
-
-**Note:** Native folders (`android/`, `ios/`) are gitignored and regenerated via `expo prebuild` when needed.
-
-## 🧹 Cleaning
-
-If you encounter build issues or want a fresh start:
-
-```bash
-# Clean build artifacts, node_modules, and caches
-yarn clean
-
-# Deep clean - includes yarn cache (use for complete fresh start)
-yarn clean:all
-
-# After cleaning, reinstall
-yarn install
-```
-
-**What gets cleaned:**
-
-`yarn clean`:
-
-- All `node_modules` (root + workspaces)
-- Build artifacts (`.next`, `dist`, `.turbo`)
-- Native folders (`android/`, `ios/`)
-- Cache files (`.expo`, metro cache)
-
-`yarn clean:all`:
-
-- Everything from `yarn clean`
-- Yarn cache files
-- `yarn.lock`
-- TypeScript build info
-
-## 🛠️ Available Scripts
-
-### Root Commands
-
-- `yarn dev` - Start all apps in development mode
-- `yarn build` - Build all apps for production
-- `yarn lint` - Lint all packages
-- `yarn format` - Format code with Prettier
-- `yarn android` - Run mobile app on Android
-- `yarn ios` - Run mobile app on iOS
-
-### Workspace-Specific Commands
-
-```bash
-# Web app
-yarn workspace @repo/web dev
-yarn workspace @repo/web build
-
-# Mobile app
-yarn workspace @repo/mobile start
-yarn workspace @repo/mobile android
-
-# Backend
-yarn workspace @repo/backend dev
-yarn workspace @repo/backend build
-
-# Database
-yarn workspace @repo/db db:generate    # Generate Prisma client
-yarn workspace @repo/db db:push        # Push schema to database
-yarn workspace @repo/db db:migrate     # Run migrations
-yarn workspace @repo/db db:studio      # Open Prisma Studio
-```
-
-## 🏗️ Project Structure
+Your phone cannot reach `localhost` on your computer. Put your computer's local network address in `apps/mobile/.env.local`:
 
 ```
-stackweave/
-├── apps/
-│   ├── web/             # Next.js web app
-│   │   └── components/  # Web-specific UI components
-│   ├── mobile/          # Expo mobile app
-│   │   └── components/  # Mobile-specific UI components
-│   └── backend/         # Express API server
-├── packages/
-│   ├── types/           # Shared TypeScript types
-│   ├── db/              # Prisma schema & client
-│   ├── api-client/      # API client
-│   ├── validators/      # Validation schemas
-│   └── tailwind-config/ # Shared theme & colors
-├── package.json         # Root workspace config
-└── turbo.json           # Turborepo configuration
+EXPO_PUBLIC_API_URL=http://192.168.1.5:3001
 ```
 
-## 🔧 Technology Stack
+Your phone and computer must be on the same Wi-Fi. The Android emulator uses `10.0.2.2` and the iOS simulator uses `localhost` automatically.
 
-- **Framework:** [Turborepo](https://turbo.build/) for monorepo management
-- **Web:** [Next.js 15](https://nextjs.org/) with React 19
-- **Mobile:** [Expo 55](https://expo.dev/) with React Native 0.83
-- **Backend:** [Express.js](https://expressjs.com/) with TypeScript
-- **Database:** [Prisma](https://www.prisma.io/) ORM with PostgreSQL
-- **Styling:** [TailwindCSS](https://tailwindcss.com/) & [NativeWind](https://www.nativewind.dev/)
-- **State Management:** [TanStack Query](https://tanstack.com/query)
-- **Package Manager:** [Yarn 4](https://yarnpkg.com/) with workspaces
+## Environment variables
 
-## 🐛 Troubleshooting
+Set these in the root `.env`. See `.env.example` for a ready-to-copy template.
 
-### Prisma Error on Start
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string used by the API (the pooled one on Neon) |
+| `DATABASE_URL_UNPOOLED` | Yes | Direct connection string used by Prisma to create and change tables |
+| `JWT_SECRET` | Yes | Secret that signs login tokens. The API refuses to start without it. |
+| `PORT` | No | API port (default `3001`) |
+| `CORS_ORIGINS` | No | Extra web addresses allowed to call the API, comma separated |
+| `WEB_URL` | For email | Public address of the web app, used in email links |
+| `SMTP_USER`, `SMTP_PASS` | For Gmail | Gmail address and App Password (see below) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | No | Use another SMTP service (default is Gmail, port 465) |
+| `RESEND_API_KEY`, `MAIL_FROM` | For Resend | Use Resend instead of SMTP |
+| `TRUST_PROXY` | No | Set to `1` when the API runs behind a tunnel or reverse proxy |
 
-If you see `@prisma/client did not initialize yet`:
+The web app finds the API automatically (same host, port 3001). To point it somewhere else, create `apps/web/.env.local` with `NEXT_PUBLIC_API_URL=https://your-api.example.com`.
 
-```bash
-yarn workspace @repo/db db:generate
-```
+## Email setup
 
-This should happen automatically via `postinstall`, but can be run manually if needed.
+The app sends a welcome email, family invite emails and password reset codes. It picks the first provider that is configured:
 
-### Database Connection Error
+1. **SMTP**, if `SMTP_USER` and `SMTP_PASS` are set (Gmail by default).
+2. **Resend**, if `RESEND_API_KEY` is set.
+3. **Nothing:** in local development the emails are printed in the API log instead, and the invite page tells the admin to share the invite code by hand.
 
-If you see `Can't reach database server`:
+### Gmail (free, about 500 emails a day)
 
-```bash
-# 1. Ensure PostgreSQL is running
-brew services start postgresql@16  # macOS
-# or
-sudo systemctl start postgresql    # Linux
+1. Turn on 2-Step Verification for the Gmail account: https://myaccount.google.com/security
+2. Create an App Password: https://myaccount.google.com/apppasswords (16 characters)
+3. Put your Gmail address in `SMTP_USER` and the App Password in `SMTP_PASS`, set `WEB_URL`, and restart the API.
 
-# 2. Verify database exists
-psql -U postgres -l | grep stackweave
+Use the App Password, not your normal Gmail password. Work or school accounts may not allow app passwords. In that case use a personal Gmail account or another SMTP provider.
 
-# 3. If not, create it
-createdb stackweave
+Emails contain links built from `WEB_URL`. Set it to an address the recipient can actually open, not `localhost`, when inviting people on other devices.
 
-# 4. Run migrations
-yarn workspace @repo/db db:migrate
-```
+## API overview
 
-### Metro/Expo Build Errors
+All routes except register, login and the password reset endpoints need a `Authorization: Bearer <token>` header. Amounts are integers in **paise** (₹1 = 100 paise) so totals never drift.
 
-```bash
-# Clear Metro cache
-yarn workspace @repo/mobile start --clear
+| Area | Routes |
+| --- | --- |
+| Account | `POST /auth/register`, `POST /auth/login`, `POST /auth/forgot`, `POST /auth/reset`, `GET/PATCH /me` |
+| Family | `POST/GET/PATCH /family`, `POST/GET /family/invites`, `DELETE /family/invites/:id`, `POST /invites/accept`, `DELETE /family/members/:userId` |
+| Categories | `GET/POST /categories`, `DELETE /categories/:id` |
+| Expenses | `GET/POST /expenses`, `GET/PATCH/DELETE /expenses/:id` (filters: `month`, `from`, `to`, `categoryId`, `userId`) |
+| Income | `GET/POST /income`, `PATCH/DELETE /income/:id` |
+| Budgets | `GET /budgets?month=YYYY-MM`, `PUT /budgets` |
+| Dashboard and reports | `GET /summary?month=YYYY-MM` |
 
-# Rebuild native folders
-cd apps/mobile
-npx expo prebuild --clean
-yarn android  # or yarn ios
-```
+Every family route checks that the caller belongs to that family, so one family can never see another family's data.
 
-### TypeScript Errors
+## Security notes
 
-```bash
-# Clean TypeScript build info
-find . -name "*.tsbuildinfo" -delete
+- Passwords are hashed with bcrypt. Reset codes are stored only as hashes, work once, expire in 30 minutes and lock after 5 wrong tries.
+- Login and reset routes are rate limited. Wrong-password and unknown-email logins return the same message.
+- Sessions last 30 days and renew while you use the app.
+- The web app keeps its login token in the browser's local storage; the mobile app uses the phone's secure storage.
 
-# Restart TypeScript server in your editor
-```
+## Useful commands
 
-### Port Already in Use
+| Command | What it does |
+| --- | --- |
+| `corepack yarn build` | Build the API and web app |
+| `corepack yarn format` | Format the code with Prettier |
+| `corepack yarn workspace @repo/db db:push` | Apply the Prisma schema to the database |
+| `corepack yarn workspace @repo/db db:studio` | Browse the database in Prisma Studio |
+| `corepack yarn clean` | Remove build output and `node_modules` |
 
-```bash
-# Kill process on port 3000 (web)
-lsof -ti:3000 | xargs kill -9
+## Troubleshooting
 
-# Kill process on port 3001 (backend)
-lsof -ti:3001 | xargs kill -9
-```
+- **"JWT_SECRET is not set":** add a long random value to `.env` and restart the API.
+- **Prisma "operation not permitted" while generating:** the API is running and holds the Prisma engine file. Stop it, run the command again, then restart it.
+- **Port 3000 or 3001 already in use:** stop the other process, or run the app on another port.
+- **Metro runs out of memory:** run `NODE_OPTIONS=--max-old-space-size=4096` before starting Expo.
+- **The phone cannot reach the API:** set `EXPO_PUBLIC_API_URL` to your computer's network address and allow the API through your firewall.
+- **Invite email never arrives:** check the Spam folder, and look at the API log. Every send logs whether the mail server accepted or rejected it.
 
-## � License
+## Not built yet
 
-MIT
+- Hosting and release (web deployment, Play Store and App Store builds)
+- Automated tests in the repository
+- Database migration history (the schema is currently applied with `db:push`)
+- Offline use, data export, receipt scanning and bill reminders (out of scope for version 1)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

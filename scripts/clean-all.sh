@@ -5,7 +5,7 @@
 
 set +e  # Don't exit on errors
 
-echo "🗑️  Deep cleaning StackWeave (this will take a moment)..."
+echo "🗑️  Deep cleaning Family Expense Tracker (this will take a moment)..."
 
 # Run normal clean first
 ./scripts/clean.sh
