@@ -1,27 +1,165 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Family Expense Tracker schema (see Family_Expense_Tracker_PRD.docx)
+// Money is stored as integer paise (₹1 = 100 paise) so totals never drift.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+}
+
+enum IncomeType {
+  SALARY
+  OTHER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  memberships  FamilyMember[]
+  expenses     Expense[]
+  incomes      Income[]
+  resets       PasswordReset[]
 }
 
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  Int
+// One-time code emailed for "Forgot password". Only a hash of the code is stored.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Family {
+  id         String         @id @default(cuid())
+  name       String
+  createdAt  DateTime       @default(now())
+  members    FamilyMember[]
+  invites    Invite[]
+  categories Category[]
+  expenses   Expense[]
+  incomes    Income[]
+  budgets    Budget[]
+}
+
+model FamilyMember {
+  id       String   @id @default(cuid())
+  userId   String
+  familyId String
+  role     Role     @default(MEMBER)
+  // Removed members are kept (active = false) so their past expenses stay in the family records.
+  active   Boolean  @default(true)
+  joinedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id])
+  family   Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, familyId])
+  @@index([familyId])
+}
+
+model Invite {
+  id          String       @id @default(cuid())
+  familyId    String
+  email       String
+  token       String       @unique
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedById String
+  createdAt   DateTime     @default(now())
+  family      Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  // null familyId = one of the 14 ready-made categories shared by every family
+  familyId  String?
+  name      String
+  isDefault Boolean   @default(false)
+  family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+  budgets   Budget[]
+
+  @@index([familyId])
+}
+
+model Expense {
+  id            String        @id @default(cuid())
+  familyId      String
+  userId        String
+  categoryId    String
+  amountPaise   Int
+  date          DateTime      @db.Date
+  paymentMethod PaymentMethod
+  note          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
+
+  @@index([familyId, date])
+}
+
+model Income {
+  id          String     @id @default(cuid())
+  familyId    String
+  // userId = the family member who earned it; createdById = who recorded it
+  userId      String
+  createdById String?
+  type        IncomeType
+  amountPaise Int
+  // "YYYY-MM"
+  month       String
+  note        String?
+  createdAt   DateTime   @default(now())
+  family      Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@index([familyId, month])
+}
+
+model Budget {
+  id          String    @id @default(cuid())
+  familyId    String
+  // "YYYY-MM"
+  month       String
+  // null categoryId = the total monthly budget
+  categoryId  String?
+  amountPaise Int
+  family      Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([familyId, month])
 }

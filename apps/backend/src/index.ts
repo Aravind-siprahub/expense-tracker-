@@ -1,132 +1,93 @@
 import express from 'express';
+import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import prisma from '@repo/db';
-import {
-  CreateUserSchema,
-  CreatePostSchema,
-  UpdatePostSchema,
-} from '@repo/validators';
+import { DEFAULT_CATEGORIES } from '@repo/validators';
+import { HttpError } from './lib';
+import { auth } from './routes/auth';
+import { family } from './routes/family';
+import { categories } from './routes/categories';
+import { expenses } from './routes/expenses';
+import { income } from './routes/income';
+import { budgets } from './routes/budgets';
+import { summary } from './routes/summary';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// Behind a tunnel or reverse proxy, the real client IP is in X-Forwarded-For. Set TRUST_PROXY=1
+// (number of proxies) there so rate limits count each person, not the whole proxy as one user.
+// Leave it unset when the API is reached directly, otherwise the header could be forged.
+if (process.env.TRUST_PROXY) {
+  const n = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isNaN(n) ? process.env.TRUST_PROXY : n);
+}
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+// Only the listed web origins may call the API from a browser. Mobile apps send no Origin.
+const defaultOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+const configuredOrigins = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const origins = [...defaultOrigins, ...configuredOrigins];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (origins.includes(origin)) return cb(null, true);
+      try {
+        const url = new URL(origin);
+        // Allow local network IPs (e.g. 192.168.x.x, 10.x.x.x) and devtunnels
+        if (/^(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|localhost|127\.0\.0\.1)$/.test(url.hostname)) {
+          return cb(null, true);
+        }
+        if (url.hostname.endsWith('.devtunnels.ms')) {
+          return cb(null, true);
+        }
+      } catch {
+        /* invalid url */
+      }
+      cb(null, false);
+    },
+    credentials: true,
+    // Lets the web app read the refreshed session token.
+    exposedHeaders: ['x-refresh-token'],
+  }),
+);
+app.use(express.json({ limit: '100kb' }));
+
+app.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'family-expense-tracker-api' });
 });
 
-// ── Users ──────────────────────────────────────────────────────────────────
+app.use(auth, family, categories, expenses, income, budgets, summary);
 
-app.get('/users', async (req, res) => {
-  try {
-    const users = await prisma.user.findMany();
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching users', error });
+app.use((_req, _res, next) => next(new HttpError(404, 'Not found')));
+
+const onError: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (err instanceof HttpError) {
+    res.status(err.status).json({ message: err.message, ...(err.code ? { code: err.code } : {}) });
+    return;
   }
-});
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong' });
+};
+app.use(onError);
 
-app.get('/users/:id', async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id);
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching user', error });
+/** The 14 ready-made categories are shared by every family (familyId = null). */
+async function ensureDefaultCategories() {
+  for (const name of DEFAULT_CATEGORIES) {
+    const found = await prisma.category.findFirst({ where: { familyId: null, name } });
+    if (!found) await prisma.category.create({ data: { name, isDefault: true } });
   }
-});
+}
 
-app.post('/users', async (req, res) => {
-  try {
-    const result = CreateUserSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ message: 'Validation failed', errors: result.error.errors });
-    }
-    const newUser = await prisma.user.create({ data: result.data });
-    res.status(201).json(newUser);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating user', error });
-  }
-});
-
-app.get('/posts', async (req, res) => {
-  try {
-    const posts = await prisma.post.findMany({ include: { author: true } });
-    res.json(posts);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching posts', error });
-  }
-});
-
-app.get('/posts/:id', async (req, res) => {
-  try {
-    const postId = parseInt(req.params.id);
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      include: { author: true },
-    });
-    if (post) {
-      res.json(post);
-    } else {
-      res.status(404).json({ message: 'Post not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching post', error });
-  }
-});
-
-app.post('/posts', async (req, res) => {
-  try {
-    const result = CreatePostSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ message: 'Validation failed', errors: result.error.errors });
-    }
-    const newPost = await prisma.post.create({ data: result.data });
-    res.status(201).json(newPost);
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating post', error });
-  }
-});
-
-app.patch('/posts/:id', async (req, res) => {
-  try {
-    const postId = parseInt(req.params.id);
-    const result = UpdatePostSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ message: 'Validation failed', errors: result.error.errors });
-    }
-    const updated = await prisma.post.update({
-      where: { id: postId },
-      data: result.data,
-    });
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating post', error });
-  }
-});
-
-app.delete('/posts/:id', async (req, res) => {
-  try {
-    const postId = parseInt(req.params.id);
-    await prisma.post.delete({ where: { id: postId } });
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting post', error });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+ensureDefaultCategories()
+  .then(() => {
+    app.listen(PORT, () => console.log(`API listening on port ${PORT}`));
+  })
+  .catch((e) => {
+    console.error('Failed to start (is the database schema pushed?)', e);
+    process.exit(1);
+  });

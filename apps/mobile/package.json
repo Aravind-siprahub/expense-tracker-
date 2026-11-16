@@ -10,15 +10,21 @@
     "clean": "rm -rf .expo android ios 2>/dev/null; find . -maxdepth 1 -name '.metro-health-check*' -delete 2>/dev/null; exit 0"
   },
   "dependencies": {
+    "@react-navigation/bottom-tabs": "7",
+    "@react-navigation/native": "7",
+    "@react-navigation/native-stack": "7",
     "@repo/api-client": "workspace:*",
     "@repo/types": "workspace:*",
     "@tanstack/react-query": "^5.96.2",
     "expo": "~55.0.11",
+    "expo-secure-store": "~55.0.18",
     "expo-status-bar": "~55.0.0",
     "nativewind": "^4.1.23",
     "react": "19.2.0",
     "react-native": "0.83.0",
     "react-native-reanimated": "^4.3.0",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
     "react-native-worklets": "^0.8.1"
   },
   "devDependencies": {

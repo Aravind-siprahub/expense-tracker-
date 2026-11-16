@@ -2,8 +2,8 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata = {
-  title: 'StackWeave',
-  description: 'Full-stack monorepo',
+  title: 'Family Expense Tracker',
+  description: 'Track family income, expenses and budgets',
 };
 
 export default function RootLayout({
