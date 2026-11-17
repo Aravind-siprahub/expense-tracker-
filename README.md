@@ -83,7 +83,14 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 ### 3. Create the database tables
 
 ```bash
-corepack yarn workspace @repo/db db:push
+corepack yarn workspace @repo/db db:migrate:prod
+```
+
+This applies the migrations in `packages/db/migrations` to an empty database. If your database was created earlier with `db:push`, mark the baseline as already applied first, then apply the rest:
+
+```bash
+corepack yarn workspace @repo/db prisma migrate resolve --applied 20261101000000_baseline
+corepack yarn workspace @repo/db db:migrate:prod
 ```
 
 ### 4. Run the apps
@@ -126,6 +133,7 @@ Set these in the root `.env`. See `.env.example` for a ready-to-copy template.
 | `JWT_SECRET` | Yes | Secret that signs login tokens. The API refuses to start without it. |
 | `PORT` | No | API port (default `3001`) |
 | `CORS_ORIGINS` | No | Extra web addresses allowed to call the API, comma separated |
+| `PAYMENT_ENCRYPTION_KEY` | For bank accounts | 32 random bytes, base64. Encrypts saved bank account numbers. Back it up: if it is lost, stored account numbers cannot be read again. |
 | `WEB_URL` | For email | Public address of the web app, used in email links |
 | `SMTP_USER`, `SMTP_PASS` | For Gmail | Gmail address and App Password (see below) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | No | Use another SMTP service (default is Gmail, port 465) |
@@ -165,8 +173,19 @@ All routes except register, login and the password reset endpoints need a `Autho
 | Income | `GET/POST /income`, `PATCH/DELETE /income/:id` |
 | Budgets | `GET /budgets?month=YYYY-MM`, `PUT /budgets` |
 | Dashboard and reports | `GET /summary?month=YYYY-MM` |
+| Payment methods | `GET/POST /payment-methods`, `PATCH/DELETE /payment-methods/:id`, `POST /payment-methods/:id/default`, `POST /payment-methods/:id/reveal` |
 
 Every family route checks that the caller belongs to that family, so one family can never see another family's data.
+
+### Saved cards and bank accounts
+
+Each person can save cards and bank accounts and pick them when adding a Card or Bank Transfer expense (Cash and UPI are unchanged). They are private to the person who saved them: not even the family admin can see them.
+
+- **Cards** store only a nickname, Credit or Debit, and the last 4 digits. A full card number, CVV, expiry or PIN is rejected.
+- **Bank accounts** store only the account number, encrypted with AES-256-GCM. The app shows the last 4 digits; the full number is shown only to its owner after they type their password again.
+- Each person has at most one default card and one default bank account. The database enforces this.
+- Deleting a saved method hides it, wipes any stored account number, and keeps old expenses intact: they still show which card or account was used, marked "removed".
+- An expense can only use a saved method that belongs to the person who made it (checked by the API and by a database foreign key).
 
 ## Security notes
 
@@ -181,7 +200,8 @@ Every family route checks that the caller belongs to that family, so one family 
 | --- | --- |
 | `corepack yarn build` | Build the API and web app |
 | `corepack yarn format` | Format the code with Prettier |
-| `corepack yarn workspace @repo/db db:push` | Apply the Prisma schema to the database |
+| `corepack yarn workspace @repo/backend test` | Run the API tests (they create and then delete their own users in the database from `.env`) |
+| `corepack yarn workspace @repo/db db:migrate:prod` | Apply the database migrations |
 | `corepack yarn workspace @repo/db db:studio` | Browse the database in Prisma Studio |
 | `corepack yarn workspace @repo/db seed:sample you@example.com` | Fill that user's family with sample categories, three months of expenses, income and budgets (for demos) |
 | `corepack yarn clean` | Remove build output and `node_modules` |
@@ -198,8 +218,7 @@ Every family route checks that the caller belongs to that family, so one family 
 ## Not built yet
 
 - Hosting and release (web deployment, Play Store and App Store builds)
-- Automated tests in the repository
-- Database migration history (the schema is currently applied with `db:push`)
+- Automated tests for the rest of the API and for the web and mobile screens (today the repository has API tests for saved payment methods)
 - Offline use, data export, receipt scanning and bill reminders (out of scope for version 1)
 
 ## License

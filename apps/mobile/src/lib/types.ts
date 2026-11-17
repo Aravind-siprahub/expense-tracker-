@@ -21,7 +21,23 @@ export interface Expense {
   category: string;
   userId: string;
   by: string;
+  // The saved card / bank account used. Only present for the person who made the expense.
+  paymentMethodId?: string | null;
+  paymentMethodLabel?: string | null;
+  paymentMethodRemoved?: boolean;
   alert?: { category: string; overByPaise: number } | null;
+}
+
+/** A card or bank account saved by the logged-in user. Numbers are always masked. */
+export interface SavedMethod {
+  id: string;
+  type: 'CARD' | 'BANK';
+  nickname: string | null;
+  cardType: 'CREDIT' | 'DEBIT' | null;
+  lastFour: string;
+  maskedNumber: string;
+  label: string;
+  isDefault: boolean;
 }
 
 export interface IncomeEntry {

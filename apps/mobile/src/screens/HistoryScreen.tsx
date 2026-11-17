@@ -121,7 +121,8 @@ export function HistoryScreen() {
                   <View className="flex-1 pr-3">
                     <Text className="font-medium text-gray-900">{t.note || t.category}</Text>
                     <Text className="text-xs text-gray-500">
-                      {t.category} · {t.by} · {METHOD_LABEL[t.paymentMethod]} · {dayLabel(t.date)}
+                      {t.category} · {t.by} · {METHOD_LABEL[t.paymentMethod]}
+                      {t.paymentMethodLabel ? ` (${t.paymentMethodLabel}${t.paymentMethodRemoved ? ', removed' : ''})` : ''} · {dayLabel(t.date)}
                     </Text>
                   </View>
                   <Text className="font-semibold text-gray-900">{inr(t.amountPaise)}</Text>

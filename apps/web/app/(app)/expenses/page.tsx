@@ -144,7 +144,15 @@ function ExpenseHistory() {
                         </td>
                         <td className="py-3.5 text-slate-600">{t.note}</td>
                         <td className="py-3.5 text-slate-600">{t.by}</td>
-                        <td className="py-3.5 text-slate-600">{METHOD_LABEL[t.paymentMethod]}</td>
+                        <td className="py-3.5 text-slate-600">
+                          {METHOD_LABEL[t.paymentMethod]}
+                          {t.paymentMethodLabel && (
+                            <div className={`text-xs ${t.paymentMethodRemoved ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-400'}`}>
+                              {t.paymentMethodLabel}
+                              {t.paymentMethodRemoved && <span className="ml-1 no-underline">(removed)</span>}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3.5 text-right font-semibold text-slate-900">{inr(t.amountPaise)}</td>
                         <td className="whitespace-nowrap px-5 py-3.5 text-right">
                           {canEdit && (

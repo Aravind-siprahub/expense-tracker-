@@ -7,6 +7,7 @@ import { Check, Eye, EyeOff, LogOut, User } from 'lucide-react';
 import { api, setToken } from '../../_lib/api';
 import { Label, Loading, Notice, PageHeader, Panel, btn, btnGhost, input, useMe } from '../../_components/Shell';
 import { SettingsArt } from '../../_components/Illustrations';
+import { PaymentMethods } from '../../_components/PaymentMethods';
 
 function PasswordField({
   value,
@@ -136,6 +137,14 @@ export default function Settings() {
         <div className="hidden items-center justify-center lg:col-span-2 lg:flex">
           <SettingsArt className="h-56 w-72" />
         </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="mb-1 text-lg font-bold tracking-tight text-slate-900">Payment methods</h2>
+        <p className="mb-4 text-sm text-slate-500">
+          Save your cards and bank accounts to pick them quickly when adding an expense. Only you can see them.
+        </p>
+        <PaymentMethods />
       </div>
     </>
   );
