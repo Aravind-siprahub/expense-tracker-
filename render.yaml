@@ -6,7 +6,7 @@ services:
     runtime: node
     plan: free
     region: singapore # closest free region to India; change if your family lives elsewhere
-    branch: as/ui # change to main after merging
+    branch: main # change to main after merging
     healthCheckPath: /
     # Install only what the API needs (not the web and mobile apps), apply database migrations,
     # then build. Migrations run here because the free plan has no separate pre-deploy step.
@@ -18,7 +18,7 @@ services:
     startCommand: node apps/backend/dist/index.js
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: 22
       - key: TRUST_PROXY # Render puts one proxy in front of the API; needed for correct rate limiting
         value: "1"
       - key: JWT_SECRET
