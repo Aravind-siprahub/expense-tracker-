@@ -1,0 +1,40 @@
+# Render Blueprint for the API (free plan). Render reads this file when you choose
+# "New > Blueprint" and connect the GitHub repo. See DEPLOY.md for the full checklist.
+services:
+  - type: web
+    name: family-expense-tracker-api
+    runtime: node
+    plan: free
+    region: singapore # closest free region to India; change if your family lives elsewhere
+    branch: as/ui # change to main after merging
+    healthCheckPath: /
+    # Install only what the API needs (not the web and mobile apps), apply database migrations,
+    # then build. Migrations run here because the free plan has no separate pre-deploy step.
+    buildCommand: >-
+      corepack enable &&
+      yarn workspaces focus @repo/backend &&
+      yarn workspace @repo/db db:migrate:prod &&
+      yarn workspace @repo/backend build
+    startCommand: node apps/backend/dist/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: TRUST_PROXY # Render puts one proxy in front of the API; needed for correct rate limiting
+        value: "1"
+      - key: JWT_SECRET
+        generateValue: true
+      # The values below are secrets or depend on your accounts, so you type them in the Render dashboard.
+      - key: DATABASE_URL # Neon pooled connection string
+        sync: false
+      - key: DATABASE_URL_UNPOOLED # Neon direct connection string (no "-pooler" in the host)
+        sync: false
+      - key: PAYMENT_ENCRYPTION_KEY # 32 random bytes, base64 (see DEPLOY.md). Back it up.
+        sync: false
+      - key: WEB_URL # your Vercel address, e.g. https://your-app.vercel.app
+        sync: false
+      - key: CORS_ORIGINS # the same Vercel address
+        sync: false
+      - key: RESEND_API_KEY # email (Render's free plan blocks Gmail SMTP)
+        sync: false
+      - key: MAIL_FROM # e.g. Family Expense Tracker <noreply@yourdomain.com>
+        sync: false
