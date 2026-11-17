@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, setToken } from '../_lib/api';
-import { Notice, btn, input } from '../_components/Shell';
+import { Label, Notice, btn, input } from '../_components/ui';
+import { AuthShell } from '../_components/AuthShell';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,54 +54,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-primary-700">Family Expense Tracker</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {mode === 'login' ? 'Log in to your family account.' : 'Create your account.'}
-        </p>
-        <form className="mt-6 space-y-3" onSubmit={submit}>
-          {expired && !error && <Notice tone="warn">Your session expired. Please log in again.</Notice>}
-          {invited && (
-            <Notice tone="success">
-              You&apos;ve been invited to join a family. Create an account (or log in) using the invited email address and you&apos;ll be added automatically.
-            </Notice>
-          )}
-          <Notice error={error} />
-          {mode === 'register' && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Full name</label>
-              <input className={input} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} placeholder="Priya Sharma" />
-            </div>
-          )}
+    <AuthShell
+      title={mode === 'login' ? 'Welcome back' : 'Create your account'}
+      subtitle={mode === 'login' ? 'Log in to your family account.' : 'Start tracking your family spending.'}
+    >
+      <form className="space-y-4" onSubmit={submit}>
+        {expired && !error && <Notice tone="warn">Your session expired. Please log in again.</Notice>}
+        {invited && (
+          <Notice tone="success">
+            You&apos;ve been invited to join a family. Create an account (or log in) using the invited email address and you&apos;ll be added automatically.
+          </Notice>
+        )}
+        <Notice error={error} />
+        {mode === 'register' && (
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
-            <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="priya@example.com" />
+            <Label>Full name</Label>
+            <input className={input} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} placeholder="Priya Sharma" />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Password</label>
-            <input className={input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'register' ? 8 : 1} placeholder="At least 8 characters" />
+        )}
+        <div>
+          <Label>Email</Label>
+          <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="priya@example.com" />
+        </div>
+        <div>
+          <Label>Password</Label>
+          <input className={input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'register' ? 8 : 1} placeholder={mode === 'register' ? 'At least 8 characters' : 'Your password'} />
+        </div>
+        <button className={`${btn} w-full !py-3`} disabled={busy}>
+          {busy ? 'Please wait…' : mode === 'login' ? 'Log In' : 'Create Account'}
+        </button>
+        {mode === 'login' && (
+          <div className="text-center text-sm">
+            <Link href="/forgot" className="font-medium text-primary-600 hover:underline">Forgot password?</Link>
           </div>
-          <button className={`${btn} w-full`} disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'login' ? 'Log In' : 'Create Account'}
-          </button>
+        )}
+        <div className="border-t border-slate-100 pt-4 text-center text-sm text-slate-500">
+          {mode === 'login' ? 'New here? ' : 'Already have an account? '}
           <button
             type="button"
             onClick={() => {
               setMode(mode === 'login' ? 'register' : 'login');
               setError(null);
             }}
-            className="w-full rounded-lg border border-primary-600 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50"
+            className="font-semibold text-primary-600 hover:underline"
           >
-            {mode === 'login' ? 'Create a new account' : 'I already have an account'}
+            {mode === 'login' ? 'Create an account' : 'Log in'}
           </button>
-          {mode === 'login' && (
-            <div className="text-center text-sm">
-              <Link href="/forgot" className="text-primary-600 hover:underline">Forgot password?</Link>
-            </div>
-          )}
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

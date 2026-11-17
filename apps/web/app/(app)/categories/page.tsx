@@ -2,9 +2,11 @@
 
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Tag, Trash2 } from 'lucide-react';
 import { api } from '../../_lib/api';
 import type { Category } from '../../_lib/types';
-import { Loading, Notice, PageHeader, Panel, btn, input, useMe } from '../../_components/Shell';
+import { IconTile, Loading, Notice, PageHeader, Panel, btn, input, useMe } from '../../_components/Shell';
+import { categoryVisual } from '../../_components/categoryIcons';
 
 const examples: Record<string, string> = {
   'Food & Dining': 'Restaurants, takeaway, cafes',
@@ -45,33 +47,51 @@ export default function Categories() {
   return (
     <>
       <PageHeader title="Categories" subtitle="14 ready-made categories plus your own" />
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Add category">
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel title="Add category" icon={Plus} tone="green" className="self-start">
           <Notice error={add.error} />
           <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); add.mutate(); }}>
             <input className={input} placeholder="e.g. Pet Care" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={40} />
             <button className={`${btn} w-full`} disabled={add.isPending}>Add Category</button>
           </form>
+          <p className="mt-3 text-xs text-slate-400">Custom categories are shared with the whole family.</p>
         </Panel>
-        <Panel title="All categories" className="lg:col-span-2">
+
+        <Panel title="All categories" icon={Tag} tone="blue" className="lg:col-span-2">
           <Notice error={del.error} />
           {list.isLoading ? <Loading /> : (
-            <ul className="divide-y divide-gray-100">
-              {defaults.map((c) => (
-                <li key={c.id} className="py-3 text-sm">
-                  <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-gray-500">{examples[c.name]}</div>
-                </li>
-              ))}
+            <div className="grid gap-x-6 sm:grid-cols-2">
               {custom.map((c) => (
-                <li key={c.id} className="flex items-center justify-between py-3 text-sm">
-                  <div className="font-medium">{c.name} <span className="ml-1 rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-700">Custom</span></div>
+                <div key={c.id} className="flex items-center gap-3 border-b border-slate-100 py-3">
+                  <IconTile icon={categoryVisual(c.name).Icon} tone="slate" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-slate-800">{c.name}</div>
+                    <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">Custom</span>
+                  </div>
                   {isAdmin && (
-                    <button className="text-red-600 hover:underline" onClick={() => confirm('Delete this category?') && del.mutate(c.id)}>Delete</button>
+                    <button
+                      aria-label={`Delete ${c.name}`}
+                      className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                      onClick={() => confirm('Delete this category?') && del.mutate(c.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   )}
-                </li>
+                </div>
               ))}
-            </ul>
+              {defaults.map((c) => {
+                const { Icon, tone } = categoryVisual(c.name);
+                return (
+                  <div key={c.id} className="flex items-center gap-3 border-b border-slate-100 py-3">
+                    <IconTile icon={Icon} tone={tone} />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-slate-800">{c.name}</div>
+                      <div className="truncate text-xs text-slate-500">{examples[c.name]}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </Panel>
       </div>

@@ -3,8 +3,44 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, Eye, EyeOff, LogOut, User } from 'lucide-react';
 import { api, setToken } from '../../_lib/api';
-import { Loading, Notice, PageHeader, Panel, btn, btnGhost, input, useMe } from '../../_components/Shell';
+import { Label, Loading, Notice, PageHeader, Panel, btn, btnGhost, input, useMe } from '../../_components/Shell';
+import { SettingsArt } from '../../_components/Illustrations';
+
+function PasswordField({
+  value,
+  onChange,
+  placeholder,
+  minLength,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  minLength?: number;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        className={`${input} !pr-11`}
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        minLength={minLength}
+      />
+      <button
+        type="button"
+        aria-label={show ? 'Hide password' : 'Show password'}
+        onClick={() => setShow(!show)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:text-slate-600"
+      >
+        {show ? <EyeOff size={17} /> : <Eye size={17} />}
+      </button>
+    </div>
+  );
+}
 
 export default function Settings() {
   const router = useRouter();
@@ -54,40 +90,53 @@ export default function Settings() {
   if (me.isLoading) return <Loading />;
 
   return (
-    <div className="max-w-xl">
+    <>
       <PageHeader title="Settings" subtitle="Profile and preferences" />
-      <Notice error={save.error} />
-      {saved && <Notice tone="success">Saved.</Notice>}
-      <Panel>
-        <form className="space-y-4" onSubmit={(e: FormEvent) => { e.preventDefault(); setSaved(false); save.mutate(); }}>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Name</label>
-            <input className={input} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
-            <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Family name {isAdmin ? '' : '(admin only)'}</label>
-            <input className={input} value={familyName} onChange={(e) => setFamilyName(e.target.value)} disabled={!isAdmin} />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-5">
+        <Panel title="Profile Information" icon={User} tone="blue" className="lg:col-span-3">
+          <Notice error={save.error} />
+          {saved && (
+            <Notice tone="success">
+              <span className="flex items-center gap-2"><Check size={16} /> Saved.</span>
+            </Notice>
+          )}
+          <form className="space-y-4" onSubmit={(e: FormEvent) => { e.preventDefault(); setSaved(false); save.mutate(); }}>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Current password</label>
-              <input className={input} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+              <Label>Name</Label>
+              <input className={input} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">New password</label>
-              <input className={input} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} placeholder="Leave empty to keep" />
+              <Label>Email</Label>
+              <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
-          </div>
-          <div className="flex gap-3">
-            <button className={`${btn} flex-1`} disabled={save.isPending}>Save</button>
-            <button type="button" className={`${btnGhost} flex-1`} onClick={logout}>Log Out</button>
-          </div>
-        </form>
-      </Panel>
-    </div>
+            <div>
+              <Label>Family name{isAdmin ? '' : ' (admin only)'}</Label>
+              <input className={input} value={familyName} onChange={(e) => setFamilyName(e.target.value)} disabled={!isAdmin} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Current password</Label>
+                <PasswordField value={currentPassword} onChange={setCurrentPassword} />
+              </div>
+              <div>
+                <Label>New password</Label>
+                <PasswordField value={newPassword} onChange={setNewPassword} placeholder="Leave empty to keep" minLength={8} />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button className={`${btn} flex-1`} disabled={save.isPending}>
+                <Check size={16} /> {save.isPending ? 'Saving…' : 'Save Changes'}
+              </button>
+              <button type="button" className={`${btnGhost} flex-1`} onClick={logout}>
+                <LogOut size={16} /> Log Out
+              </button>
+            </div>
+          </form>
+        </Panel>
+        <div className="hidden items-center justify-center lg:col-span-2 lg:flex">
+          <SettingsArt className="h-56 w-72" />
+        </div>
+      </div>
+    </>
   );
 }
