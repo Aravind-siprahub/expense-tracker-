@@ -201,6 +201,3 @@ Every family route checks that the caller belongs to that family, so one family 
 - Database migration history (the schema is currently applied with `db:push`)
 - Offline use, data export, receipt scanning and bill reminders (out of scope for version 1)
 
-## License
-
-MIT. See [LICENSE](LICENSE).
