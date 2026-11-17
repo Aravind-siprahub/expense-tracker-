@@ -183,6 +183,7 @@ Every family route checks that the caller belongs to that family, so one family 
 | `corepack yarn format` | Format the code with Prettier |
 | `corepack yarn workspace @repo/db db:push` | Apply the Prisma schema to the database |
 | `corepack yarn workspace @repo/db db:studio` | Browse the database in Prisma Studio |
+| `corepack yarn workspace @repo/db seed:sample you@example.com` | Fill that user's family with sample categories, three months of expenses, income and budgets (for demos) |
 | `corepack yarn clean` | Remove build output and `node_modules` |
 
 ## Troubleshooting
