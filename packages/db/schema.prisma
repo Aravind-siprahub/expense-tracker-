@@ -130,17 +130,23 @@ model FamilyMember {
 }
 
 model Invite {
-  id          String       @id @default(cuid())
-  familyId    String
-  email       String
-  token       String       @unique
-  status      InviteStatus @default(PENDING)
-  expiresAt   DateTime
-  invitedById String
-  createdAt   DateTime     @default(now())
-  family      Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  familyId     String
+  email        String
+  // Long secret used by the one-click join link in the email.
+  token        String       @unique
+  // Short verification code (8 characters) the invited person can type in. Only its hash is stored.
+  // Old invites have none. The code works only for the invited email and locks after 5 wrong tries.
+  codeHash     String?
+  codeAttempts Int          @default(0)
+  status       InviteStatus @default(PENDING)
+  expiresAt    DateTime
+  invitedById  String
+  createdAt    DateTime     @default(now())
+  family       Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([familyId])
+  @@index([email, status])
 }
 
 model Category {

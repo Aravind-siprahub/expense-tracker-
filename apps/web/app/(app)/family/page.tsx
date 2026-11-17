@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, Mail, UserPlus, Users, X } from 'lucide-react';
+import { Check, ChevronRight, Copy, Mail, UserPlus, Users, X } from 'lucide-react';
 import { api } from '../../_lib/api';
 import { historyHref, inr } from '../../_lib/format';
 import type { FamilyInfo } from '../../_lib/types';
@@ -21,7 +21,8 @@ export default function Family() {
   const me = useMe();
   const isAdmin = me.data?.family?.role === 'ADMIN';
   const [email, setEmail] = useState('');
-  const [fresh, setFresh] = useState<{ email: string; token: string; emailSent: boolean } | null>(null);
+  const [fresh, setFresh] = useState<{ email: string; code: string; emailSent: boolean } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fam = useQuery({ queryKey: ['family'], queryFn: () => api<FamilyInfo>('GET', '/family') });
   const invites = useQuery({
@@ -30,9 +31,10 @@ export default function Family() {
     enabled: isAdmin,
   });
   const invite = useMutation({
-    mutationFn: () => api<{ token: string; email: string; emailSent: boolean }>('POST', '/family/invites', { email }),
+    mutationFn: () => api<{ code: string; email: string; emailSent: boolean }>('POST', '/family/invites', { email }),
     onSuccess: (r) => {
-      setFresh({ email: r.email, token: r.token, emailSent: r.emailSent });
+      setFresh({ email: r.email, code: r.code, emailSent: r.emailSent });
+      setCopied(false);
       setEmail('');
       qc.invalidateQueries({ queryKey: ['invites'] });
     },
@@ -106,16 +108,27 @@ export default function Family() {
                 {fresh && (
                   <div className="mt-4 space-y-2">
                     {fresh.emailSent ? (
-                      <Notice tone="success">Invite emailed to {fresh.email}. They can join with one click. It expires in 7 days.</Notice>
+                      <Notice tone="success">Invite emailed to {fresh.email} with a verification code. It expires in 7 days.</Notice>
                     ) : (
                       <Notice tone="warn">
-                        The email could not be sent (mail isn&apos;t set up or the mail server refused it). Share the code below with {fresh.email} yourself.
+                        The email could not be sent (mail isn&apos;t set up or the mail server refused it). Give the code below to {fresh.email} yourself.
                       </Notice>
                     )}
-                    <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                      <div className="mb-1 font-semibold">Invite code for {fresh.email}</div>
-                      <code className="block break-all rounded-lg bg-white p-2 font-mono">{fresh.token}</code>
-                      <p className="mt-2 text-slate-500">They sign up with this email, then choose &quot;Join with an invite code&quot; and paste it.</p>
+                    <div className="rounded-xl bg-slate-50 p-4 text-center">
+                      <div className="text-xs font-medium text-slate-500">Verification code for {fresh.email}</div>
+                      <div className="my-2 font-mono text-3xl font-bold tracking-[0.25em] text-slate-900">{fresh.code}</div>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:underline"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(fresh.code).then(() => setCopied(true)).catch(() => undefined);
+                        }}
+                      >
+                        {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy code'}
+                      </button>
+                      <p className="mt-3 text-xs text-slate-500">
+                        They create an account or log in with <strong>{fresh.email}</strong>, then choose &quot;Join with a verification code&quot; and enter it. It works once, and only with that email.
+                      </p>
                     </div>
                   </div>
                 )}

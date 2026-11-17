@@ -107,27 +107,30 @@ export function inviteEmail(o: {
 }): Email {
   const subject = `${o.inviter} invited you to ${o.family} on ${BRAND}`;
   const html = layout({
-    preheader: `${o.inviter} invited you to join "${o.family}". Tap to accept.`,
+    preheader: `Your verification code to join "${o.family}" is ${o.code}.`,
     title: `Join ${o.family}`,
     body:
       para(`<strong>${esc(o.inviter)}</strong> invited you to track your family's income, expenses and budget together on ${BRAND}.`) +
+      para('Your verification code:') +
+      codeBox(o.code, true) +
       steps([
-        'Tap the button below.',
         `Create an account or log in with <strong>${esc(o.email)}</strong>.`,
-        `You'll be added to <strong>${esc(o.family)}</strong> automatically.`,
+        'Choose <strong>Join with an invite code</strong> and enter the code above.',
+        `You'll be added to <strong>${esc(o.family)}</strong>.`,
       ]) +
-      button(`Join ${o.family}`, o.link) +
       divider +
-      `<p style="margin:0 0 4px;font-size:13px;line-height:20px;color:#6b7280;">Button not working? Open the app, choose <strong>Join with an invite code</strong> and paste this code:</p>` +
-      codeBox(o.code) +
-      `<p style="margin:0;font-size:13px;line-height:20px;color:#6b7280;">This invite expires in 7 days.</p>`,
+      `<p style="margin:0 0 4px;font-size:13px;line-height:20px;color:#6b7280;">Prefer one click? This button fills in the code for you:</p>` +
+      button(`Join ${o.family}`, o.link) +
+      `<p style="margin:0;font-size:13px;line-height:20px;color:#6b7280;">The code works only with ${esc(o.email)}, only once, and expires in 7 days.</p>`,
     footer: `Sent to ${esc(o.email)} because ${esc(o.inviter)} invited you.<br>If you don't know them, you can ignore this email.`,
   });
   const text =
     `${o.inviter} invited you to join "${o.family}" on ${BRAND}.\n\n` +
-    `Join with one click (sign up or log in using ${o.email}):\n${o.link}\n\n` +
-    `Or open the app, choose "Join with an invite code" and paste:\n${o.code}\n\n` +
-    `This invite expires in 7 days. If you don't know ${o.inviter}, ignore this email.`;
+    `Your verification code: ${o.code}\n\n` +
+    `1. Create an account or log in with ${o.email}\n` +
+    `2. Choose "Join with an invite code" and enter the code above\n\n` +
+    `Or join with one click:\n${o.link}\n\n` +
+    `The code works only with ${o.email}, only once, and expires in 7 days. If you don't know ${o.inviter}, ignore this email.`;
   return { subject, html, text };
 }
 

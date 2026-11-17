@@ -72,7 +72,14 @@ export const ResetPasswordSchema = z.object({
 
 export const CreateFamilySchema = z.object({ name: z.string().trim().min(2).max(80) });
 export const InviteSchema = z.object({ email: z.string().trim().toLowerCase().email() });
-export const AcceptInviteSchema = z.object({ token: z.string().min(10) });
+// Join a family with EITHER the verification code (typed by the person) OR the long token from the email link.
+export const AcceptInviteSchema = z
+  .object({
+    token: z.string().trim().min(10).max(100).optional(),
+    code: z.string().trim().min(6).max(20).optional(),
+  })
+  .strict()
+  .refine((v) => !!v.token !== !!v.code, { message: 'Enter the verification code from your invite email' });
 
 export const CreateCategorySchema = z.object({ name: z.string().trim().min(2).max(40) });
 

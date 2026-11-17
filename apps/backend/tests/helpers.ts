@@ -81,7 +81,7 @@ export async function startApp(): Promise<Ctx> {
 
   const join: Ctx['join'] = async (admin, member) => {
     const inv = await call('POST', '/family/invites', admin.token, { email: member.email });
-    const acc = await call('POST', '/invites/accept', member.token, { token: inv.body.token });
+    const acc = await call('POST', '/invites/accept', member.token, { code: inv.body.code });
     if (acc.status !== 200) throw new Error(`join failed: ${JSON.stringify(acc.body)}`);
   };
 

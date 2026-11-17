@@ -2,7 +2,6 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import prisma from '@repo/db';
-import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import {
   ForgotPasswordSchema,
   LoginSchema,
@@ -13,6 +12,7 @@ import {
 import { HttpError, parse, requireAuth, signToken, wrap } from '../lib';
 import { WEB_URL, sendMail } from '../mail';
 import { resetEmail, welcomeEmail } from '../emailTemplates';
+import { codeMatches, formatCode, hashCode, makeCode } from '../codes';
 
 export const auth = Router();
 
@@ -22,11 +22,6 @@ const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHe
 // ── Forgot password ─────────────────────────────────────────────────────────
 // A short one-time code is emailed (with a link that pre-fills it). Codes expire after
 // 30 minutes, work once, and are locked after 5 wrong tries. Only a hash is stored.
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid mix-ups
-const makeCode = () => Array.from({ length: 8 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
-const normalizeCode = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '');
-const hashCode = (c: string) => createHash('sha256').update(normalizeCode(c)).digest('hex');
 
 auth.post(
   '/auth/forgot',
@@ -46,7 +41,7 @@ auth.post(
           },
         }),
       ]);
-      const shown = `${code.slice(0, 4)}-${code.slice(4)}`;
+      const shown = formatCode(code);
       const link = `${WEB_URL}/reset?email=${encodeURIComponent(email)}&code=${code}`;
       const mail = resetEmail({ name: user.name, code: shown, link });
       await sendMail(email, mail.subject, mail.text, mail.html);
@@ -70,9 +65,7 @@ auth.post(
     });
     if (!reset || reset.attempts >= 5) throw bad;
 
-    const given = Buffer.from(hashCode(body.code));
-    const stored = Buffer.from(reset.codeHash);
-    if (given.length !== stored.length || !timingSafeEqual(given, stored)) {
+    if (!codeMatches(body.code, reset.codeHash)) {
       await prisma.passwordReset.update({ where: { id: reset.id }, data: { attempts: { increment: 1 } } });
       throw bad;
     }

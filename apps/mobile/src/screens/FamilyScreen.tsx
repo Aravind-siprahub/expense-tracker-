@@ -19,15 +19,15 @@ export function FamilyScreen() {
   const me = useMe();
   const isAdmin = me.data?.family?.role === 'ADMIN';
   const [email, setEmail] = useState('');
-  const [fresh, setFresh] = useState<{ email: string; token: string; emailSent: boolean } | null>(null);
+  const [fresh, setFresh] = useState<{ email: string; code: string; emailSent: boolean } | null>(null);
 
   const fam = useQuery({ queryKey: ['family'], queryFn: () => api<FamilyInfo>('GET', '/family') });
   const invites = useQuery({ queryKey: ['invites'], queryFn: () => api<Invite[]>('GET', '/family/invites'), enabled: isAdmin });
   const invite = useMutation({
     mutationFn: () =>
-      api<{ token: string; email: string; emailSent: boolean }>('POST', '/family/invites', { email: email.trim() }),
+      api<{ code: string; email: string; emailSent: boolean }>('POST', '/family/invites', { email: email.trim() }),
     onSuccess: (r) => {
-      setFresh({ email: r.email, token: r.token, emailSent: r.emailSent });
+      setFresh({ email: r.email, code: r.code, emailSent: r.emailSent });
       setEmail('');
       qc.invalidateQueries({ queryKey: ['invites'] });
     },
@@ -82,19 +82,17 @@ export function FamilyScreen() {
           {fresh && (
             <View className="mt-3 gap-2">
               {fresh.emailSent ? (
-                <Notice tone="success">Invite emailed to {fresh.email}. It expires in 7 days.</Notice>
+                <Notice tone="success">Invite emailed to {fresh.email} with a verification code. It expires in 7 days.</Notice>
               ) : (
-                <>
-                  <Notice tone="warn">The email could not be sent. Share the code below with {fresh.email} yourself.</Notice>
-                  <View className="mt-1 rounded-lg bg-primary-50 p-3">
-                    <Text className="mb-1 text-xs font-semibold text-gray-700">Invite code for {fresh.email}</Text>
-                    <Text selectable className="rounded bg-white p-2 text-xs text-gray-900">{fresh.token}</Text>
-                    <Text className="mt-2 text-xs text-gray-500">
-                      Share this code with them. They sign up with this email, then paste the code to join. It expires in 7 days.
-                    </Text>
-                  </View>
-                </>
+                <Notice tone="warn">The email could not be sent. Give the code below to {fresh.email} yourself.</Notice>
               )}
+              <View className="items-center rounded-xl bg-gray-50 p-4">
+                <Text className="text-xs font-medium text-gray-500">Verification code for {fresh.email}</Text>
+                <Text selectable className="my-2 text-3xl font-bold tracking-widest text-gray-900">{fresh.code}</Text>
+                <Text className="text-center text-xs text-gray-500">
+                  They create an account or log in with this email, then choose &quot;Join with a verification code&quot; and enter it. It works once, and only with that email.
+                </Text>
+              </View>
             </View>
           )}
           {invites.data && invites.data.length > 0 && (
