@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, PiggyBank, Receipt, Tag, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import { api } from '../../_lib/api';
@@ -23,9 +23,40 @@ import { Donut, EmptyDonut, Progress } from '../../_components/Charts';
 import { CalendarArt } from '../../_components/Illustrations';
 import { categoryVisual } from '../../_components/categoryIcons';
 
+// Budget alerts the person has closed are remembered in this browser, so a refresh does not bring
+// them back. Each is stored with the overspend it was closed at: it returns only if spending gets worse.
+const DISMISSED_KEY = 'fet_dismissed_budget_alerts';
+type Dismissed = Record<string, number>;
+
+function readDismissed(): Dismissed {
+  try {
+    const v = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? '{}');
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDismissed(next: Dismissed) {
+  try {
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+  } catch {
+    /* storage blocked: the alert simply returns after a refresh */
+  }
+}
+
 export default function Dashboard() {
   const [month, setMonth] = useState(currentMonth());
+  const [dismissed, setDismissed] = useState<Dismissed>({});
+  useEffect(() => setDismissed(readDismissed()), []);
   const me = useMe();
+  const familyId = me.data?.family?.id ?? 'none';
+  const alertKey = (name: string) => `${familyId}:${month}:${name}`;
+  const dismissAlert = (name: string, overByPaise: number) => {
+    const next = { ...readDismissed(), [alertKey(name)]: overByPaise };
+    writeDismissed(next);
+    setDismissed(next);
+  };
   const q = useQuery({
     queryKey: ['summary', month],
     queryFn: () => api<Summary>('GET', `/summary?month=${month}`),
@@ -50,11 +81,13 @@ export default function Dashboard() {
       {q.isLoading && <Loading />}
       {s && (
         <div className="space-y-5">
-          {s.overBudget.map((o) => (
-            <Notice key={o.name} tone="error">
-              <strong>{o.name}</strong> is over budget by {inr(o.overByPaise)}
-            </Notice>
-          ))}
+          {s.overBudget
+            .filter((o) => !(o.overByPaise <= (dismissed[alertKey(o.name)] ?? -1)))
+            .map((o) => (
+              <Notice key={`${month}:${o.name}`} tone="error" onDismiss={() => dismissAlert(o.name, o.overByPaise)}>
+                <strong>{o.name}</strong> is over budget by {inr(o.overByPaise)}
+              </Notice>
+            ))}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard label="Income" value={inr(s.incomePaise)} tone="green" icon={TrendingUp} />

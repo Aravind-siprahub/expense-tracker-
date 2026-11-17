@@ -170,10 +170,13 @@ export function Notice({
   error,
   tone = 'error',
   children,
+  onDismiss,
 }: {
   error?: unknown;
   tone?: 'error' | 'success' | 'warn';
   children?: ReactNode;
+  /** Called when the person closes the alert (lets the caller remember the dismissal). */
+  onDismiss?: () => void;
 }) {
   const [hidden, setHidden] = useState(false);
   const message =
@@ -202,7 +205,10 @@ export function Notice({
       <div className="min-w-0 flex-1">{children ?? message}</div>
       <button
         type="button"
-        onClick={() => setHidden(true)}
+        onClick={() => {
+          setHidden(true);
+          onDismiss?.();
+        }}
         aria-label="Dismiss"
         title="Dismiss"
         className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 opacity-60 transition hover:bg-black/5 hover:opacity-100"
