@@ -6,13 +6,14 @@ services:
     runtime: node
     plan: free
     region: singapore # closest free region to India; change if your family lives elsewhere
-    branch: main # change to main after merging
+    branch: main
     healthCheckPath: /
     # Install only what the API needs (not the web and mobile apps), apply database migrations,
     # then build. Migrations run here because the free plan has no separate pre-deploy step.
     buildCommand: >-
       corepack enable &&
       yarn workspaces focus @repo/backend &&
+      yarn workspace @repo/db db:generate &&
       yarn workspace @repo/db db:migrate:prod &&
       yarn workspace @repo/backend build
     startCommand: node apps/backend/dist/index.js
