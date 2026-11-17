@@ -8,6 +8,7 @@ import { api, setToken } from '../../_lib/api';
 import { Label, Loading, Notice, PageHeader, Panel, btn, btnGhost, input, useMe } from '../../_components/Shell';
 import { SettingsArt } from '../../_components/Illustrations';
 import { PaymentMethods } from '../../_components/PaymentMethods';
+import { InstallPanel } from '../../_components/InstallApp';
 
 function PasswordField({
   value,
@@ -137,6 +138,10 @@ export default function Settings() {
         <div className="hidden items-center justify-center lg:col-span-2 lg:flex">
           <SettingsArt className="h-56 w-72" />
         </div>
+      </div>
+
+      <div className="mt-5 lg:max-w-[60%]">
+        <InstallPanel />
       </div>
 
       <div className="mt-8">

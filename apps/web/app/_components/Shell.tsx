@@ -22,6 +22,7 @@ import {
 import { api, getToken, setToken } from '../_lib/api';
 import type { Me } from '../_lib/types';
 import { Avatar, Loading, Notice, Panel, btn, btnGhost, input, type Tone } from './ui';
+import { InstallBanner } from './InstallApp';
 
 // Everything the pages import from here lives in ui.tsx; re-exported so imports stay short.
 export * from './ui';
@@ -61,7 +62,9 @@ function Onboarding({ name }: { name: string }) {
     onSuccess: done,
   });
   const join = useMutation({
-    mutationFn: (token?: string) => api('POST', '/invites/accept', { token: (token ?? code).trim() }),
+    // The one-click email link passes a long token; typing the short verification code sends `code`.
+    mutationFn: (token?: string) =>
+      api('POST', '/invites/accept', token ? { token: token.trim() } : { code: code.trim() }),
     onSuccess: done,
   });
 
@@ -84,7 +87,7 @@ function Onboarding({ name }: { name: string }) {
     <div className="mx-auto max-w-md space-y-4 pt-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Welcome, {name}</h1>
-        <p className="mt-1 text-sm text-slate-500">Create your family group, or join one with an invite code.</p>
+        <p className="mt-1 text-sm text-slate-500">Create your family group, or join one with the verification code from your invite email.</p>
       </div>
       <Panel title="Create a family" icon={House}>
         <Notice error={create.error} />
@@ -108,7 +111,7 @@ function Onboarding({ name }: { name: string }) {
           </button>
         </form>
       </Panel>
-      <Panel title="Join with an invite code" icon={Users} tone="green">
+      <Panel title="Join with a verification code" icon={Users} tone="green">
         <Notice error={join.error} />
         <form
           className="space-y-3"
@@ -118,14 +121,19 @@ function Onboarding({ name }: { name: string }) {
           }}
         >
           <input
-            className={input}
-            placeholder="Paste invite code"
+            className={`${input} text-center font-mono text-lg uppercase tracking-[0.3em]`}
+            placeholder="ABCD-2345"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={20}
+            autoComplete="off"
             required
           />
-          <button className={`${btnGhost} w-full`} disabled={join.isPending}>
-            Join Family
+          <p className="text-xs text-slate-500">
+            Use the 8-character code from the email, and sign in with the same email address the invite was sent to.
+          </p>
+          <button className={`${btnGhost} w-full`} disabled={join.isPending || code.trim().length < 6}>
+            {join.isPending ? 'Checking…' : 'Join Family'}
           </button>
         </form>
       </Panel>
@@ -225,12 +233,19 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 px-4 pb-28 pt-6 md:px-8 md:pb-10 md:pt-8">
-        <div className="mx-auto max-w-6xl">{family ? children : <Onboarding name={user.name} />}</div>
+        <div className="mx-auto max-w-6xl">
+          {family && <InstallBanner />}
+          {family ? children : <Onboarding name={user.name} />}
+        </div>
       </main>
 
       {/* Mobile bottom navigation */}
       {family && (
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex items-end justify-around border-t border-slate-200/70 bg-white/95 px-2 pb-2 pt-1.5 backdrop-blur md:hidden">
+        <nav
+          className="fixed inset-x-0 bottom-0 z-20 flex items-end justify-around border-t border-slate-200/70 bg-white/95 px-2 pt-1.5 backdrop-blur md:hidden"
+          // Keeps the bar above the home indicator on phones when the app is installed.
+          style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        >
           {[nav[0], nav[1]].map((n) => (
             <MobileTab key={n.href} href={n.href} label={n.label} icon={n.icon} on={active(n.href)} />
           ))}

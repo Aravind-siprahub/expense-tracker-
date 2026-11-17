@@ -7,7 +7,7 @@ All amounts are in Indian Rupees (₹). This is a small family app: it does not 
 ## What it does
 
 - **Accounts:** register, log in, edit your profile, change your password, and reset a forgotten password by email.
-- **Family groups:** create a family (you become the admin), invite members by email with a one-click join link, and remove members. A removed member's past expenses stay in the family records.
+- **Family groups:** create a family (you become the admin), invite members by email, and remove members. Each invite carries an 8-character verification code (the invited person enters it to join) plus a one-click join link. The code works only with the invited email address, only once, expires in 7 days, and locks after 5 wrong tries. A removed member's past expenses stay in the family records.
 - **Expenses:** amount, category, date, payment method (Cash, UPI, Card, Bank Transfer) and an optional note. Add, edit and delete, and filter history by date range, category and member.
 - **Categories:** 14 ready-made categories plus custom ones shared by the whole family. Only the admin can delete a custom category, and never one that already has expenses.
 - **Income:** record salary and other income per month, for any family member.
@@ -15,6 +15,7 @@ All amounts are in Indian Rupees (₹). This is a small family app: it does not 
 - **Dashboard:** monthly income, expenses and balance, spending by category and by member, and recent transactions. Tap a category, member or transaction to open the matching list.
 - **Reports:** monthly summary, category chart, income vs. expenses, and a comparison with the previous month.
 - **Roles:** the admin can edit or delete any entry and manage budgets and members. Members can add entries and edit or delete their own.
+- **Installable web app (PWA):** the web app can be installed on a phone or computer and opens in its own window, with a friendly offline screen when there is no connection (see [Installing the web app](#installing-the-web-app-pwa)).
 - **Live refresh:** screens refresh every 30 seconds and whenever you return to the app, so an expense added on a phone shows up on the web.
 
 ## Tech stack
@@ -122,6 +123,31 @@ EXPO_PUBLIC_API_URL=http://192.168.1.5:3001
 
 Your phone and computer must be on the same Wi-Fi. The Android emulator uses `10.0.2.2` and the iOS simulator uses `localhost` automatically.
 
+## Installing the web app (PWA)
+
+The web app is a Progressive Web App. Where the browser allows it, an **Install** banner appears at the top, and **Settings → Install app** has an Install button.
+
+- **Android / Chrome / Edge:** tap Install, or use the browser menu → *Install app*.
+- **iPhone / iPad:** open the site in Safari, tap **Share**, then **Add to Home Screen**.
+
+What it includes: a web app manifest (name, colors, icons, shortcuts such as "Add Expense"), a small service worker (`apps/web/public/sw.js`) and a self-contained offline screen (`apps/web/public/offline.html`). The icons are drawn in code (`apps/web/app/_lib/brandIcon.tsx`), so no image files are needed.
+
+How the service worker is deliberately limited:
+
+- It keeps only the app's static files (scripts, styles, icons) so the app starts fast.
+- It **never** caches API calls, pages, or anything carrying a login token, so family data is never stored by it. Pages are always loaded fresh; if there is no connection, the offline screen is shown.
+- A new version waits until you tap **Refresh** in the app. To release a new service worker, change `VERSION` in `sw.js`.
+
+Things to know:
+
+- Installing needs **HTTPS** (it also works on `localhost`). Host the web app over HTTPS before sharing it.
+- The service worker runs only in **production builds** (`corepack yarn workspace @repo/web build`, then `start`). In `dev` it is switched off and any old one is removed, so stale files never get in the way.
+- Test it: `corepack yarn workspace @repo/web test` checks that the service worker leaves API calls and pages alone.
+
+## Deploying (free)
+
+Vercel for the web app, Render for the API and Neon for the database. The step-by-step checklist is in [DEPLOY.md](DEPLOY.md); the API's settings are in [render.yaml](render.yaml).
+
 ## Environment variables
 
 Set these in the root `.env`. See `.env.example` for a ready-to-copy template.
@@ -148,7 +174,7 @@ The app sends a welcome email, family invite emails and password reset codes. It
 
 1. **SMTP**, if `SMTP_USER` and `SMTP_PASS` are set (Gmail by default).
 2. **Resend**, if `RESEND_API_KEY` is set.
-3. **Nothing:** in local development the emails are printed in the API log instead, and the invite page tells the admin to share the invite code by hand.
+3. **Nothing:** in local development the emails are printed in the API log instead, and the invite page tells the admin to give the verification code to the invited person by hand.
 
 ### Gmail (free, about 500 emails a day)
 
@@ -167,7 +193,7 @@ All routes except register, login and the password reset endpoints need a `Autho
 | Area | Routes |
 | --- | --- |
 | Account | `POST /auth/register`, `POST /auth/login`, `POST /auth/forgot`, `POST /auth/reset`, `GET/PATCH /me` |
-| Family | `POST/GET/PATCH /family`, `POST/GET /family/invites`, `DELETE /family/invites/:id`, `POST /invites/accept`, `DELETE /family/members/:userId` |
+| Family | `POST/GET/PATCH /family`, `POST/GET /family/invites`, `DELETE /family/invites/:id`, `POST /invites/accept` (send `{ "code": "ABCD-2345" }` or the link's `{ "token": "..." }`), `DELETE /family/members/:userId` |
 | Categories | `GET/POST /categories`, `DELETE /categories/:id` |
 | Expenses | `GET/POST /expenses`, `GET/PATCH/DELETE /expenses/:id` (filters: `month`, `from`, `to`, `categoryId`, `userId`) |
 | Income | `GET/POST /income`, `PATCH/DELETE /income/:id` |
@@ -200,6 +226,7 @@ Each person can save cards and bank accounts and pick them when adding a Card or
 | --- | --- |
 | `corepack yarn build` | Build the API and web app |
 | `corepack yarn format` | Format the code with Prettier |
+| `corepack yarn workspace @repo/web test` | Run the service worker tests |
 | `corepack yarn workspace @repo/backend test` | Run the API tests (they create and then delete their own users in the database from `.env`) |
 | `corepack yarn workspace @repo/db db:migrate:prod` | Apply the database migrations |
 | `corepack yarn workspace @repo/db db:studio` | Browse the database in Prisma Studio |
