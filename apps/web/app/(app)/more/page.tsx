@@ -1,24 +1,29 @@
+'use client';
+
 import Link from 'next/link';
-import { PageHeader, Panel } from '../../_components/Shell';
+import { ChevronRight, Settings, Tag, Target, Users, Wallet } from 'lucide-react';
+import { IconTile, PageHeader, Panel } from '../../_components/ui';
 
 const items = [
-  ['/income', '💰 Income'],
-  ['/budget', '🎯 Budget'],
-  ['/categories', '🏷️ Categories'],
-  ['/family', '👨‍👩‍👧 Family'],
-  ['/settings', '⚙️ Settings'],
-];
+  { href: '/income', label: 'Income', icon: Wallet, tone: 'amber' },
+  { href: '/budget', label: 'Budget', icon: Target, tone: 'red' },
+  { href: '/categories', label: 'Categories', icon: Tag, tone: 'amber' },
+  { href: '/family', label: 'Family', icon: Users, tone: 'blue' },
+  { href: '/settings', label: 'Settings', icon: Settings, tone: 'slate' },
+] as const;
 
 export default function More() {
   return (
     <>
       <PageHeader title="More" />
-      <Panel>
-        <ul className="divide-y divide-gray-100">
-          {items.map(([href, label]) => (
-            <li key={href}>
-              <Link href={href} className="block py-3 text-sm font-medium">
-                {label}
+      <Panel className="!p-2">
+        <ul className="divide-y divide-slate-100">
+          {items.map((i) => (
+            <li key={i.href}>
+              <Link href={i.href} className="flex items-center gap-3 rounded-xl px-3 py-3.5 transition hover:bg-slate-50">
+                <IconTile icon={i.icon} tone={i.tone} />
+                <span className="flex-1 text-sm font-medium text-slate-800">{i.label}</span>
+                <ChevronRight size={18} className="text-slate-300" />
               </Link>
             </li>
           ))}

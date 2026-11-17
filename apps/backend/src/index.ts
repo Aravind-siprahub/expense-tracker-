@@ -11,8 +11,10 @@ import { expenses } from './routes/expenses';
 import { income } from './routes/income';
 import { budgets } from './routes/budgets';
 import { summary } from './routes/summary';
+import { paymentMethods } from './routes/paymentMethods';
 
-const app = express();
+// Exported so the automated tests can start the app on a random port.
+export const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Behind a tunnel or reverse proxy, the real client IP is in X-Forwarded-For. Set TRUST_PROXY=1
@@ -61,7 +63,7 @@ app.get('/', (_req, res) => {
   res.json({ ok: true, service: 'family-expense-tracker-api' });
 });
 
-app.use(auth, family, categories, expenses, income, budgets, summary);
+app.use(auth, family, categories, expenses, income, budgets, summary, paymentMethods);
 
 app.use((_req, _res, next) => next(new HttpError(404, 'Not found')));
 
@@ -76,18 +78,21 @@ const onError: ErrorRequestHandler = (err, _req, res, _next) => {
 app.use(onError);
 
 /** The 14 ready-made categories are shared by every family (familyId = null). */
-async function ensureDefaultCategories() {
+export async function ensureDefaultCategories() {
   for (const name of DEFAULT_CATEGORIES) {
     const found = await prisma.category.findFirst({ where: { familyId: null, name } });
     if (!found) await prisma.category.create({ data: { name, isDefault: true } });
   }
 }
 
-ensureDefaultCategories()
-  .then(() => {
-    app.listen(PORT, () => console.log(`API listening on port ${PORT}`));
-  })
-  .catch((e) => {
-    console.error('Failed to start (is the database schema pushed?)', e);
-    process.exit(1);
-  });
+// Only start listening when run directly (not when the tests import the app).
+if (require.main === module) {
+  ensureDefaultCategories()
+    .then(() => {
+      app.listen(PORT, () => console.log(`API listening on port ${PORT}`));
+    })
+    .catch((e) => {
+      console.error('Failed to start (is the database up to date? run db:migrate:prod)', e);
+      process.exit(1);
+    });
+}

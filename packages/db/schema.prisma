@@ -34,16 +34,58 @@ enum InviteStatus {
   REVOKED
 }
 
+// Saved payment methods. UPI is reserved for later; today only CARD and BANK are created.
+enum PaymentMethodType {
+  CARD
+  BANK
+  UPI
+}
+
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
+  id           String               @id @default(cuid())
+  email        String               @unique
   name         String
   passwordHash String
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime             @default(now())
   memberships  FamilyMember[]
   expenses     Expense[]
   incomes      Income[]
   resets       PasswordReset[]
+  savedMethods SavedPaymentMethod[]
+}
+
+// A card or bank account that one user has saved. Private to that user.
+// Never stores a full card number, CVV or PIN: only the last 4 digits and a nickname.
+// A bank account number is stored encrypted (AES-256-GCM); lastFour is kept for masked display.
+// Deleting is a soft delete (deletedAt) so old expenses keep their payment method;
+// the encrypted number is wiped at that point.
+//
+// Rules enforced in the database (see the payment_methods migration, Prisma cannot express them):
+//  - at most one default per (user, type) among live methods (partial unique index)
+//  - CHECK constraints on which columns each type must / must not have
+//  - Expense.paymentMethodId must belong to the same user as the expense (composite foreign key)
+model SavedPaymentMethod {
+  id               String            @id @default(cuid())
+  userId           String
+  type             PaymentMethodType
+  nickname         String?
+  cardType         CardType?
+  lastFour         String?           @db.VarChar(4)
+  accountNumberEnc String?
+  isDefault        Boolean           @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  user             User              @relation(fields: [userId], references: [id])
+  expenses         Expense[]
+
+  @@unique([id, userId])
+  @@index([userId, type])
 }
 
 // One-time code emailed for "Forgot password". Only a hash of the code is stored.
@@ -88,17 +130,23 @@ model FamilyMember {
 }
 
 model Invite {
-  id          String       @id @default(cuid())
-  familyId    String
-  email       String
-  token       String       @unique
-  status      InviteStatus @default(PENDING)
-  expiresAt   DateTime
-  invitedById String
-  createdAt   DateTime     @default(now())
-  family      Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  familyId     String
+  email        String
+  // Long secret used by the one-click join link in the email.
+  token        String       @unique
+  // Short verification code (8 characters) the invited person can type in. Only its hash is stored.
+  // Old invites have none. The code works only for the invited email and locks after 5 wrong tries.
+  codeHash     String?
+  codeAttempts Int          @default(0)
+  status       InviteStatus @default(PENDING)
+  expiresAt    DateTime
+  invitedById  String
+  createdAt    DateTime     @default(now())
+  family       Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([familyId])
+  @@index([email, status])
 }
 
 model Category {
@@ -115,21 +163,26 @@ model Category {
 }
 
 model Expense {
-  id            String        @id @default(cuid())
-  familyId      String
-  userId        String
-  categoryId    String
-  amountPaise   Int
-  date          DateTime      @db.Date
-  paymentMethod PaymentMethod
-  note          String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id])
-  category      Category      @relation(fields: [categoryId], references: [id])
+  id              String              @id @default(cuid())
+  familyId        String
+  userId          String
+  categoryId      String
+  amountPaise     Int
+  date            DateTime            @db.Date
+  paymentMethod   PaymentMethod
+  // Optional link to the saved card / bank account used (only for CARD and BANK_TRANSFER).
+  // Old expenses have none. Kept (not nulled) when the saved method is soft-deleted.
+  paymentMethodId String?
+  note            String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  family          Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id])
+  category        Category            @relation(fields: [categoryId], references: [id])
+  savedMethod     SavedPaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
 
   @@index([familyId, date])
+  @@index([paymentMethodId])
 }
 
 model Income {

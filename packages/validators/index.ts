@@ -72,7 +72,14 @@ export const ResetPasswordSchema = z.object({
 
 export const CreateFamilySchema = z.object({ name: z.string().trim().min(2).max(80) });
 export const InviteSchema = z.object({ email: z.string().trim().toLowerCase().email() });
-export const AcceptInviteSchema = z.object({ token: z.string().min(10) });
+// Join a family with EITHER the verification code (typed by the person) OR the long token from the email link.
+export const AcceptInviteSchema = z
+  .object({
+    token: z.string().trim().min(10).max(100).optional(),
+    code: z.string().trim().min(6).max(20).optional(),
+  })
+  .strict()
+  .refine((v) => !!v.token !== !!v.code, { message: 'Enter the verification code from your invite email' });
 
 export const CreateCategorySchema = z.object({ name: z.string().trim().min(2).max(40) });
 
@@ -81,9 +88,71 @@ export const CreateExpenseSchema = z.object({
   categoryId: z.string().min(1),
   date: day,
   paymentMethod: PaymentMethodSchema,
+  // Optional saved card / bank account. Only valid with CARD / BANK_TRANSFER; null clears it.
+  paymentMethodId: z.string().min(1).max(64).nullable().optional(),
   note: z.string().trim().max(200).optional(),
 });
 export const UpdateExpenseSchema = CreateExpenseSchema.partial();
+
+// ── Saved payment methods (cards and bank accounts) ──
+// Only the last 4 digits of a card are ever accepted: a full card number, CVV or PIN is rejected
+// because unknown fields are not allowed (.strict()).
+const lastFour = z.string().trim().regex(/^\d{4}$/, 'Enter exactly the last 4 digits');
+// Spaces and hyphens a person may type are removed before checking: 9 to 18 digits.
+const accountNumber = z
+  .string()
+  .transform((s) => s.replace(/[\s-]/g, ''))
+  .pipe(z.string().regex(/^\d{9,18}$/, 'Account number must be 9 to 18 digits'));
+const nickname = z.string().trim().min(2, 'Nickname must be at least 2 characters').max(40);
+
+export const CreatePaymentMethodSchema = z
+  .object({
+    type: z.enum(['CARD', 'BANK']),
+    nickname: nickname.optional(),
+    cardType: z.enum(['CREDIT', 'DEBIT']).optional(),
+    lastFour: lastFour.optional(),
+    accountNumber: accountNumber.optional(),
+    confirmAccountNumber: accountNumber.optional(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    const need = (ok: boolean, path: string, message: string) => {
+      if (!ok) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+    };
+    if (v.type === 'CARD') {
+      need(!!v.nickname, 'nickname', 'Give the card a nickname, for example "HDFC Credit Card"');
+      need(!!v.cardType, 'cardType', 'Choose Credit or Debit');
+      need(!!v.lastFour, 'lastFour', 'Enter the last 4 digits');
+      need(v.accountNumber === undefined && v.confirmAccountNumber === undefined, 'accountNumber', 'A card has no account number');
+    } else {
+      need(!!v.accountNumber, 'accountNumber', 'Enter the account number');
+      need(!!v.confirmAccountNumber, 'confirmAccountNumber', 'Confirm the account number');
+      need(v.accountNumber === v.confirmAccountNumber, 'confirmAccountNumber', 'Account numbers do not match');
+      need(v.cardType === undefined && v.lastFour === undefined, 'cardType', 'A bank account has no card details');
+    }
+  });
+
+export const UpdatePaymentMethodSchema = z
+  .object({
+    nickname: nickname.optional(),
+    cardType: z.enum(['CREDIT', 'DEBIT']).optional(),
+    lastFour: lastFour.optional(),
+    accountNumber: accountNumber.optional(),
+    confirmAccountNumber: accountNumber.optional(),
+    isDefault: z.boolean().optional(),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    if (v.accountNumber !== undefined || v.confirmAccountNumber !== undefined) {
+      if (v.accountNumber !== v.confirmAccountNumber) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['confirmAccountNumber'], message: 'Account numbers do not match' });
+      }
+    }
+  });
+
+/** Revealing a stored account number needs the user's password again. */
+export const RevealPaymentMethodSchema = z.object({ password: z.string().min(1).max(128) }).strict();
 
 export const CreateIncomeSchema = z.object({
   // Family member who earned it; defaults to the person recording it.

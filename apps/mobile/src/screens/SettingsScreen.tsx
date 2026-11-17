@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useSession } from '../session';
 import { Btn, Field, Loading, Notice, Panel, Screen, useMe } from '../ui';
+import { PaymentMethodsSection } from '../PaymentMethods';
 
 export function SettingsScreen() {
   const qc = useQueryClient();
@@ -64,6 +65,7 @@ export function SettingsScreen() {
         </View>
       </Panel>
       <Btn label={save.isPending ? 'Saving…' : 'Save'} onPress={() => { setSaved(false); save.mutate(); }} disabled={save.isPending} />
+      <PaymentMethodsSection />
       <Btn label="Log Out" variant="ghost" onPress={signOut} />
     </Screen>
   );
