@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ChevronRight, Settings, Tag, Target, Users, Wallet } from 'lucide-react';
 import { IconTile, PageHeader, Panel } from '../../_components/ui';
