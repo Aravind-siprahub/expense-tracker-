@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -111,16 +111,23 @@ export function Notice({
   tone?: 'error' | 'success' | 'warn';
   children?: ReactNode;
 }) {
-  const text =
-    children ??
-    (typeof error === 'string' && error
+  const [hidden, setHidden] = useState(false);
+  const message =
+    typeof error === 'string' && error
       ? error
       : error instanceof Error
         ? error.message
         : error
           ? 'Something went wrong'
-          : null);
-  if (!text) return null;
+          : null;
+  const hasContent = children != null || message != null;
+
+  // Show the alert again when a new one arrives: once the old content is gone, forget the dismissal.
+  useEffect(() => {
+    if (!hasContent) setHidden(false);
+  }, [hasContent]);
+
+  if (!hasContent || hidden) return null;
   const box = {
     error: 'border-red-200 bg-red-50',
     success: 'border-green-200 bg-green-50',
@@ -128,8 +135,11 @@ export function Notice({
   }[tone];
   const color = { error: 'text-red-700', success: 'text-green-700', warn: 'text-amber-800' }[tone];
   return (
-    <View className={`rounded-xl border px-4 py-3 ${box}`}>
-      <Text className={`text-sm ${color}`}>{text}</Text>
+    <View className={`flex-row items-start gap-3 rounded-xl border px-4 py-3 ${box}`}>
+      <Text className={`flex-1 text-sm ${color}`}>{children ?? message}</Text>
+      <Pressable onPress={() => setHidden(true)} hitSlop={10} accessibilityLabel="Dismiss">
+        <Text className={`text-lg leading-5 ${color}`}>×</Text>
+      </Pressable>
     </View>
   );
 }

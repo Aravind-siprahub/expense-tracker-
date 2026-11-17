@@ -1,7 +1,7 @@
 'use client';
 
-import { CalendarDays, type LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { CalendarDays, X, type LucideIcon } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 // ── Buttons and inputs ───────────────────────────────────────────────────────
 
@@ -175,22 +175,42 @@ export function Notice({
   tone?: 'error' | 'success' | 'warn';
   children?: ReactNode;
 }) {
-  const text =
-    children ??
-    (typeof error === 'string' && error
+  const [hidden, setHidden] = useState(false);
+  const message =
+    typeof error === 'string' && error
       ? error
       : error instanceof Error
         ? error.message
         : error
           ? 'Something went wrong'
-          : null);
-  if (!text) return null;
+          : null;
+  const hasContent = children != null || message != null;
+
+  // Show the alert again when a new one arrives: once the old content is gone, forget the dismissal.
+  useEffect(() => {
+    if (!hasContent) setHidden(false);
+  }, [hasContent]);
+
+  if (!hasContent || hidden) return null;
   const color = {
     error: 'border-rose-200 bg-rose-50 text-rose-700',
     success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     warn: 'border-amber-200 bg-amber-50 text-amber-800',
   }[tone];
-  return <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${color}`}>{text}</div>;
+  return (
+    <div role="alert" className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${color}`}>
+      <div className="min-w-0 flex-1">{children ?? message}</div>
+      <button
+        type="button"
+        onClick={() => setHidden(true)}
+        aria-label="Dismiss"
+        title="Dismiss"
+        className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 opacity-60 transition hover:bg-black/5 hover:opacity-100"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
 }
 
 export function Loading() {
