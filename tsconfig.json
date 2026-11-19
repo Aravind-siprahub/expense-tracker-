@@ -20,5 +20,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "dist", "build", ".next", "out", ".turbo"]
+  "exclude": ["node_modules", "dist", "build", "out", ".turbo"]
 }

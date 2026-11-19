@@ -23,5 +23,5 @@
     "skipLibCheck": true,
     "preserveWatchOutput": true
   },
-  "exclude": ["node_modules", "dist", "build", ".next", "out"]
+  "exclude": ["node_modules", "dist", "build", "out"]
 }

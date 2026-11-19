@@ -22,7 +22,6 @@ npm-debug.*
 .env*.local
 
 # ── Next.js ────────────────────────────────────────────────────────────────
-.next/
 out/
 web-build/
 
@@ -32,6 +31,11 @@ expo-env.d.ts
 .kotlin/
 android/
 ios/
+# The phone app (Capacitor) native projects are source code, not generated like Expo's: keep them.
+# (Inside them, Capacitor's own .gitignore skips build output and the copied web files. Signing keys
+# such as *.jks stay ignored, below: never commit them.)
+!apps/web-vite/android/
+!apps/web-vite/ios/
 *.jks
 *.p8
 *.p12

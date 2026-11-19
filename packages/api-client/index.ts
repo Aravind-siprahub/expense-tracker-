@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CreateUser, CreatePost, UpdatePost } from '@repo/validators';
 import type { User, Post, PostWithAuthor } from '@repo/types';
 
-let BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+let BASE_URL = 'http://localhost:3001';
 
 export function configure(config: { baseURL: string }) {
   BASE_URL = config.baseURL;

@@ -9,7 +9,7 @@ echo "🧹 Cleaning Family Expense Tracker..."
 
 # Clean root-level build artifacts
 echo "  → Cleaning root build artifacts..."
-rm -rf .turbo .expo .next 2>/dev/null || true
+rm -rf .turbo .expo 2>/dev/null || true
 
 # Clean root node_modules
 echo "  → Cleaning root node_modules..."
@@ -28,7 +28,6 @@ rm -rf apps/mobile/android apps/mobile/ios 2>/dev/null || true
 echo "  → Cleaning workspace build artifacts..."
 find apps packages -maxdepth 2 -name ".turbo" -type d -exec rm -rf {} + 2>/dev/null || true
 find apps packages -maxdepth 2 -name ".expo" -type d -exec rm -rf {} + 2>/dev/null || true
-find apps packages -maxdepth 2 -name ".next" -type d -exec rm -rf {} + 2>/dev/null || true
 find apps packages -maxdepth 2 -name "dist" -type d -exec rm -rf {} + 2>/dev/null || true
 
 # Clean metro cache files

@@ -2,7 +2,7 @@
 
 | Part | Where | Why |
 |---|---|---|
-| Web app | **Vercel** (Hobby) | Best free home for Next.js, never sleeps, HTTPS included (the PWA needs HTTPS) |
+| Web app | **Vercel** (Hobby) | Best free home for a static web app, never sleeps, HTTPS included (the PWA needs HTTPS) |
 | API | **Render** (free web service) | No expiry. Sleeps after ~15 min idle, so the first request after a pause takes 30-60 s |
 | Database | **Neon** (free) | Already in use |
 | Email | **Resend** (free) | Render's free plan blocks Gmail SMTP; Resend works over HTTPS |
@@ -61,8 +61,8 @@ If the build runs out of memory or `yarn workspaces focus` fails, change the ins
 ## 3. Web app (Vercel)
 
 - [ ] Sign in at <https://vercel.com> with GitHub, **Add New > Project**, pick this repo.
-- [ ] **Root Directory:** `apps/web`. Leave "Include source files outside of the Root Directory" **on**. [`vercel.json`](apps/web/vercel.json) handles install and build.
-- [ ] Add one environment variable: `NEXT_PUBLIC_API_URL` = `https://<your-service>.onrender.com` (no trailing slash).
+- [ ] **Root Directory:** `apps/web-vite`. Leave "Include source files outside of the Root Directory" **on**. [`vercel.json`](apps/web-vite/vercel.json) handles install and build.
+- [ ] Add one environment variable: `VITE_API_URL` = `https://<your-service>.onrender.com` (no trailing slash).
 - [ ] If the install step cannot find Yarn 4, add `ENABLE_EXPERIMENTAL_COREPACK` = `1` and redeploy.
 - [ ] Deploy, then open the address Vercel gives you.
 
@@ -84,7 +84,7 @@ If the build runs out of memory or `yarn workspaces focus` fails, change the ins
 
 - Every push to the deploy branch redeploys both services.
 - New database migrations are applied by the Render build.
-- To release a new service worker, change `VERSION` in `apps/web/public/sw.js`.
+- To release a new service worker, change `VERSION` in `apps/web-vite/public/sw.js`.
 - Mobile app: set `EXPO_PUBLIC_API_URL` to the Render address, then build with Expo EAS. Android APKs are free; the App Store needs a paid Apple account.
 
 ## Not verified

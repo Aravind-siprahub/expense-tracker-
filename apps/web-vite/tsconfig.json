@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/typescript-config/base.json",
+  "include": ["src", "vite.config.ts", "tailwind.config.ts", "capacitor.config.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "ES2020",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true
+  }
+}

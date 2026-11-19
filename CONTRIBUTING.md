@@ -20,7 +20,7 @@ Open an issue and include:
    corepack yarn format
    corepack yarn build
    ```
-   Also run a TypeScript check in the app you changed, for example `npx tsc --noEmit` inside `apps/web`, `apps/backend` or `apps/mobile`.
+   Also run a TypeScript check in the app you changed, for example `npx tsc --noEmit` inside `apps/web-vite`, `apps/backend` or `apps/mobile`.
 5. Commit, push and open a pull request describing what changed and how you tested it.
 
 ## Guidelines

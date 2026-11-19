@@ -22,7 +22,7 @@ All amounts are in Indian Rupees (₹). This is a small family app: it does not 
 
 | Part | Technology |
 | --- | --- |
-| Web app | Next.js 15, React 19, Tailwind CSS, TanStack Query |
+| Web app | Vite 7, React 19, React Router 7, Tailwind CSS, TanStack Query |
 | Mobile app (Android and iOS) | React Native with Expo, NativeWind, React Navigation |
 | API | Node.js, Express, Zod validation |
 | Database | PostgreSQL (for example a free [Neon](https://neon.tech) project) with Prisma |
@@ -35,7 +35,7 @@ All amounts are in Indian Rupees (₹). This is a small family app: it does not 
 .
 ├── apps/
 │   ├── backend/     Express API (routes, auth, email templates)
-│   ├── web/         Next.js web app
+│   ├── web-vite/    Web app (Vite + React), also wrapped by Capacitor for Android
 │   └── mobile/      Expo mobile app
 ├── packages/
 │   ├── db/          Prisma schema and client
@@ -102,8 +102,8 @@ Open a terminal for each:
 # API  ->  http://localhost:3001
 corepack yarn workspace @repo/backend dev
 
-# Web app  ->  http://localhost:3000
-corepack yarn workspace @repo/web dev
+# Web app  ->  http://localhost:5173
+corepack yarn workspace @repo/web-vite dev
 
 # Mobile app (scan the QR code with Expo Go)
 corepack yarn workspace @repo/mobile start
@@ -111,7 +111,7 @@ corepack yarn workspace @repo/mobile start
 
 `corepack yarn dev` starts the API and web app together through Turborepo.
 
-Open http://localhost:3000, create an account, then create your family group.
+Open http://localhost:5173, create an account, then create your family group.
 
 ### Running the mobile app on a real phone
 
@@ -130,7 +130,7 @@ The web app is a Progressive Web App. Where the browser allows it, an **Install*
 - **Android / Chrome / Edge:** tap Install, or use the browser menu → *Install app*.
 - **iPhone / iPad:** open the site in Safari, tap **Share**, then **Add to Home Screen**.
 
-What it includes: a web app manifest (name, colors, icons, shortcuts such as "Add Expense"), a small service worker (`apps/web/public/sw.js`) and a self-contained offline screen (`apps/web/public/offline.html`). The icons are drawn in code (`apps/web/app/_lib/brandIcon.tsx`), so no image files are needed.
+What it includes: a web app manifest (name, colors, icons, shortcuts such as "Add Expense"), a small service worker (`apps/web-vite/public/sw.js`) and a self-contained offline screen (`apps/web-vite/public/offline.html`). The icons are PNG files in `apps/web-vite/public/`.
 
 How the service worker is deliberately limited:
 
@@ -141,8 +141,8 @@ How the service worker is deliberately limited:
 Things to know:
 
 - Installing needs **HTTPS** (it also works on `localhost`). Host the web app over HTTPS before sharing it.
-- The service worker runs only in **production builds** (`corepack yarn workspace @repo/web build`, then `start`). In `dev` it is switched off and any old one is removed, so stale files never get in the way.
-- Test it: `corepack yarn workspace @repo/web test` checks that the service worker leaves API calls and pages alone.
+- The service worker runs only in **production builds** (`corepack yarn workspace @repo/web-vite build`, then `start`). In `dev` it is switched off and any old one is removed, so stale files never get in the way.
+- Test it: `corepack yarn workspace @repo/web-vite test` checks that the service worker leaves API calls and pages alone.
 
 ## Deploying (free)
 
@@ -166,7 +166,7 @@ Set these in the root `.env`. See `.env.example` for a ready-to-copy template.
 | `RESEND_API_KEY`, `MAIL_FROM` | For Resend | Use Resend instead of SMTP |
 | `TRUST_PROXY` | No | Set to `1` when the API runs behind a tunnel or reverse proxy |
 
-The web app finds the API automatically (same host, port 3001). To point it somewhere else, create `apps/web/.env.local` with `NEXT_PUBLIC_API_URL=https://your-api.example.com`.
+The web app finds the API automatically (same host, port 3001). To point it somewhere else, create `apps/web-vite/.env.local` with `VITE_API_URL=https://your-api.example.com`.
 
 ## Email setup
 
@@ -226,7 +226,7 @@ Each person can save cards and bank accounts and pick them when adding a Card or
 | --- | --- |
 | `corepack yarn build` | Build the API and web app |
 | `corepack yarn format` | Format the code with Prettier |
-| `corepack yarn workspace @repo/web test` | Run the service worker tests |
+| `corepack yarn workspace @repo/web-vite test` | Run the service worker tests |
 | `corepack yarn workspace @repo/backend test` | Run the API tests (they create and then delete their own users in the database from `.env`) |
 | `corepack yarn workspace @repo/db db:migrate:prod` | Apply the database migrations |
 | `corepack yarn workspace @repo/db db:studio` | Browse the database in Prisma Studio |
@@ -237,7 +237,7 @@ Each person can save cards and bank accounts and pick them when adding a Card or
 
 - **"JWT_SECRET is not set":** add a long random value to `.env` and restart the API.
 - **Prisma "operation not permitted" while generating:** the API is running and holds the Prisma engine file. Stop it, run the command again, then restart it.
-- **Port 3000 or 3001 already in use:** stop the other process, or run the app on another port.
+- **Port 5173 or 3001 already in use:** stop the other process, or run the app on another port.
 - **Metro runs out of memory:** run `NODE_OPTIONS=--max-old-space-size=4096` before starting Expo.
 - **The phone cannot reach the API:** set `EXPO_PUBLIC_API_URL` to your computer's network address and allow the API through your firewall.
 - **Invite email never arrives:** check the Spam folder, and look at the API log. Every send logs whether the mail server accepted or rejected it.
