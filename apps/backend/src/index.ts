@@ -1,6 +1,7 @@
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import prisma from '@repo/db';
 import { DEFAULT_CATEGORIES } from '@repo/validators';
 import { HttpError } from './lib';
@@ -16,6 +17,17 @@ import { paymentMethods } from './routes/paymentMethods';
 // Exported so the automated tests can start the app on a random port.
 export const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Remove technology disclosure header
+app.disable('x-powered-by');
+
+// Security headers middleware
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  }),
+);
 
 // Behind a tunnel or reverse proxy, the real client IP is in X-Forwarded-For. Set TRUST_PROXY=1
 // (number of proxies) there so rate limits count each person, not the whole proxy as one user.

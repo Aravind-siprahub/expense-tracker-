@@ -59,6 +59,13 @@ summary.get(
     const userName = new Map(users.map((u) => [u.id, u.name]));
     const budgetBy = new Map(budgets.filter((b) => b.categoryId).map((b) => [b.categoryId!, b.amountPaise]));
 
+    const sumCategoryBudgets = [...budgetBy.values()].reduce((s, a) => s + a, 0);
+    const directTotalBudget = budgets.find((b) => b.categoryId === null)?.amountPaise ?? null;
+    const effectiveTotalBudgetPaise = directTotalBudget ?? (sumCategoryBudgets > 0 ? sumCategoryBudgets : null);
+    const remainingBudgetPaise = effectiveTotalBudgetPaise !== null ? effectiveTotalBudgetPaise - now.expensesPaise : null;
+    const savingsPaise = now.incomePaise - now.expensesPaise;
+    const savingsRate = now.incomePaise > 0 ? Math.round((savingsPaise / now.incomePaise) * 1000) / 10 : 0;
+
     const byCategory = byCat
       .map((c) => ({
         categoryId: c.categoryId,
@@ -73,7 +80,10 @@ summary.get(
       incomePaise: now.incomePaise,
       expensesPaise: now.expensesPaise,
       remainingPaise: now.incomePaise - now.expensesPaise,
-      totalBudgetPaise: budgets.find((b) => b.categoryId === null)?.amountPaise ?? null,
+      savingsPaise,
+      savingsRate,
+      totalBudgetPaise: effectiveTotalBudgetPaise,
+      remainingBudgetPaise,
       byCategory,
       byMember: byUser
         .map((u) => ({
@@ -95,6 +105,28 @@ summary.get(
       overBudget: byCategory
         .filter((c) => c.budgetPaise > 0 && c.spentPaise > c.budgetPaise)
         .map((c) => ({ name: c.name, overByPaise: c.spentPaise - c.budgetPaise })),
+      budgetAlerts: {
+        overBudget: byCategory
+          .filter((c) => c.budgetPaise > 0 && c.spentPaise > c.budgetPaise)
+          .map((c) => ({
+            categoryId: c.categoryId,
+            name: c.name,
+            spentPaise: c.spentPaise,
+            budgetPaise: c.budgetPaise,
+            overByPaise: c.spentPaise - c.budgetPaise,
+            percent: Math.round((c.spentPaise / c.budgetPaise) * 100),
+          })),
+        nearBudget: byCategory
+          .filter((c) => c.budgetPaise > 0 && c.spentPaise >= c.budgetPaise * 0.8 && c.spentPaise <= c.budgetPaise)
+          .map((c) => ({
+            categoryId: c.categoryId,
+            name: c.name,
+            spentPaise: c.spentPaise,
+            budgetPaise: c.budgetPaise,
+            remainingPaise: c.budgetPaise - c.spentPaise,
+            percent: Math.round((c.spentPaise / c.budgetPaise) * 100),
+          })),
+      },
       previousMonth: {
         month: prev,
         incomePaise: before.incomePaise,

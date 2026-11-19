@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '@repo/db';
 import type { Prisma } from '@repo/db';
 import {
@@ -20,6 +21,8 @@ import { methodLabel } from './paymentMethods';
 
 export const expenses = Router();
 expenses.use('/expenses', requireFamily);
+
+const writeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 120, standardHeaders: true });
 
 type Method = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 
@@ -100,6 +103,12 @@ expenses.get(
       to?: string;
       categoryId?: string;
       userId?: string;
+      paymentMethod?: Method;
+      q?: string;
+      sortBy?: 'date' | 'amount';
+      sortOrder?: 'asc' | 'desc';
+      page: number;
+      limit: number;
     }>(ExpenseQuerySchema, req.query);
     const where: Prisma.ExpenseWhereInput = { familyId: req.ctx.familyId };
     if (q.month) where.date = monthRange(q.month);
@@ -111,17 +120,41 @@ expenses.get(
     }
     if (q.categoryId) where.categoryId = q.categoryId;
     if (q.userId) where.userId = q.userId;
+    if (q.paymentMethod) where.paymentMethod = q.paymentMethod;
+    if (q.q) {
+      where.note = { contains: q.q, mode: 'insensitive' };
+    }
 
-    const [rows, sum] = await Promise.all([
+    const sortOrder = q.sortOrder ?? 'desc';
+    const orderBy: Prisma.ExpenseOrderByWithRelationInput[] =
+      q.sortBy === 'amount'
+        ? [{ amountPaise: sortOrder }, { date: 'desc' }]
+        : [{ date: sortOrder }, { createdAt: 'desc' }];
+
+    const page = q.page || 1;
+    const limit = q.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const [rows, sum, count] = await Promise.all([
       prisma.expense.findMany({
         where,
         include,
-        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
-        take: 500,
+        orderBy,
+        skip,
+        take: limit,
       }),
       prisma.expense.aggregate({ where, _sum: { amountPaise: true } }),
+      prisma.expense.count({ where }),
     ]);
-    res.json({ totalPaise: sum._sum.amountPaise ?? 0, items: rows.map((r) => shape(r, req.ctx.userId)) });
+
+    res.json({
+      totalPaise: sum._sum.amountPaise ?? 0,
+      totalCount: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit) || 1,
+      items: rows.map((r) => shape(r, req.ctx.userId)),
+    });
   }),
 );
 
@@ -139,6 +172,7 @@ expenses.get(
 
 expenses.post(
   '/expenses',
+  writeLimiter,
   wrap(async (req, res) => {
     const b = parse<ExpenseInput>(CreateExpenseSchema, req.body);
     await assertCategory(req.ctx.familyId!, b.categoryId);
@@ -173,6 +207,7 @@ async function loadOwned(req: Express.Request, id: string) {
 
 expenses.patch(
   '/expenses/:id',
+  writeLimiter,
   wrap(async (req, res) => {
     const existing = await loadOwned(req, req.params.id);
     const b = parse<Partial<ExpenseInput>>(UpdateExpenseSchema, req.body);
