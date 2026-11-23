@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "corepack": true,
+      "developmentClient": false,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://family-expense-tracker-api-5l2h.onrender.com"
+      }
+    },
+    "preview": {
+      "corepack": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://family-expense-tracker-api-5l2h.onrender.com"
+      }
+    },
+    "production": {
+      "corepack": true,
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://family-expense-tracker-api-5l2h.onrender.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

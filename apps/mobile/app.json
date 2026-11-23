@@ -8,15 +8,18 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.familyexpense.tracker"
+      "bundleIdentifier": "com.familyexpense.tracker.mobile",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#2563eb"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.familyexpense.tracker"
+      "package": "com.familyexpense.tracker.mobile",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-secure-store",
@@ -26,12 +29,21 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#f5f8ff",
+          "imageWidth": 200
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "backgroundColor": "#f5f8ff",
+    "extra": {
+      "eas": {
+        "projectId": "17be463c-fffd-44ff-908d-b7588b3549f3"
+      }
+    },
+    "owner": "aravindsiddy"
   }
 }

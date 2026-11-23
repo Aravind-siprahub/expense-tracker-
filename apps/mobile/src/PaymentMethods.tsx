@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { Check, CreditCard, Eye, EyeOff, Landmark, Pencil, Plus, Star, Trash2, X } from 'lucide-react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './lib/api';
 import type { SavedMethod } from './lib/types';
-import { Btn, Chip, Field, Loading, Notice, Panel } from './ui';
+import { Btn, IconTile, Loading, Notice, Panel, colors } from './ui';
+import { RefField, type InputRef } from './screens/AuthScreen';
 
 export const SAVED_METHODS_KEY = ['payment-methods'];
 
@@ -22,11 +24,13 @@ export function PaymentMethodsSection() {
   const methods = useSavedMethods();
   const items = methods.data ?? [];
   return (
-    <View className="gap-3">
-      <Text className="mt-2 text-lg font-bold text-gray-900">Payment methods</Text>
-      <Text className="-mt-2 text-sm text-gray-500">
-        Save your cards and bank accounts to pick them quickly when adding an expense. Only you can see them.
-      </Text>
+    <View className="mt-2 gap-3">
+      <View>
+        <Text className="text-lg font-bold tracking-tight text-slate-900">Payment methods</Text>
+        <Text className="mt-1 text-sm text-slate-500">
+          Save your cards and bank accounts to pick them quickly when adding an expense. Only you can see them.
+        </Text>
+      </View>
       <Notice error={methods.error} />
       {methods.isLoading ? (
         <Loading />
@@ -60,55 +64,111 @@ function Section({ kind, items }: { kind: 'CARD' | 'BANK'; items: SavedMethod[] 
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(id) },
     ]);
+  const busy = makeDefault.isPending || remove.isPending;
 
   return (
-    <Panel title={isCard ? 'Cards' : 'Bank accounts'}>
+    <Panel
+      title={isCard ? 'Cards' : 'Bank accounts'}
+      icon={isCard ? CreditCard : Landmark}
+      tone={isCard ? 'purple' : 'teal'}
+      action={
+        form === null ? (
+          <Pressable
+            onPress={() => setForm('add')}
+            accessibilityRole="button"
+            accessibilityLabel={isCard ? 'Add card' : 'Add bank account'}
+            hitSlop={6}
+            className="flex-row items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 active:bg-slate-50"
+          >
+            <Plus size={14} color={colors.text2} />
+            <Text className="text-xs font-semibold text-slate-700">{isCard ? 'Add card' : 'Add bank account'}</Text>
+          </Pressable>
+        ) : undefined
+      }
+    >
       <Notice error={makeDefault.error ?? remove.error} />
-      {form !== null ? (
-        <MethodForm
-          kind={kind}
-          existing={form === 'add' ? undefined : items.find((m) => m.id === form)}
-          onDone={() => {
-            setForm(null);
-            refresh();
-          }}
-          onCancel={() => setForm(null)}
-        />
+      {form !== null && (
+        <View className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <MethodForm
+            kind={kind}
+            existing={form === 'add' ? undefined : items.find((m) => m.id === form)}
+            onDone={() => {
+              setForm(null);
+              refresh();
+            }}
+            onCancel={() => setForm(null)}
+          />
+        </View>
+      )}
+      {items.length === 0 && form === null ? (
+        <Text className="py-3 text-sm text-slate-500">
+          {isCard
+            ? 'No saved cards yet. Save a card to pick it quickly when you add an expense. Only the last 4 digits are stored.'
+            : 'No saved bank accounts yet. Your account number is stored encrypted.'}
+        </Text>
       ) : (
-        <>
-          {items.length === 0 && (
-            <Text className="mb-3 text-sm text-gray-500">
-              {isCard
-                ? 'No saved cards yet. Only the last 4 digits are stored.'
-                : 'No saved bank accounts yet. Your account number is stored encrypted.'}
-            </Text>
-          )}
-          {items.map((m) => (
-            <View key={m.id} className="border-b border-gray-100 py-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1 pr-3">
-                  <Text className="font-semibold text-gray-900">
+        items.map((m, idx) => (
+          <View key={m.id} className={`py-3.5 ${idx > 0 ? 'border-t border-slate-100' : ''}`}>
+            <View className="flex-row items-center gap-3">
+              <IconTile icon={isCard ? CreditCard : Landmark} tone={isCard ? 'purple' : 'teal'} />
+              <View className="min-w-0 flex-1">
+                <View className="flex-row flex-wrap items-center gap-2">
+                  <Text numberOfLines={1} className="shrink text-sm font-semibold text-slate-800">
                     {m.nickname || (isCard ? 'Card' : 'Bank account')}
-                    {m.cardType ? `  ·  ${m.cardType === 'CREDIT' ? 'Credit' : 'Debit'}` : ''}
-                    {m.isDefault ? '  ★ Default' : ''}
                   </Text>
-                  <Text className="mt-0.5 text-xs tracking-wider text-gray-500">{m.maskedNumber}</Text>
+                  {isCard && m.cardType ? (
+                    <View className="rounded-full bg-slate-100 px-2 py-0.5">
+                      <Text className="text-[11px] font-medium text-slate-500">{m.cardType === 'CREDIT' ? 'Credit' : 'Debit'}</Text>
+                    </View>
+                  ) : null}
+                  {m.isDefault ? (
+                    <View className="flex-row items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5">
+                      <Star size={11} color={colors.primaryDark} />
+                      <Text className="text-[11px] font-medium text-primary-700">Default</Text>
+                    </View>
+                  ) : null}
                 </View>
+                <Text className="text-xs tracking-wide text-slate-500">{m.maskedNumber}</Text>
               </View>
-              <View className="mt-2 flex-row flex-wrap gap-x-5 gap-y-1">
-                {!m.isDefault && (
-                  <Text className="text-sm text-primary-600" onPress={() => makeDefault.mutate(m.id)}>Set default</Text>
-                )}
-                <Text className="text-sm text-primary-600" onPress={() => setForm(m.id)}>Edit</Text>
-                <Text className="text-sm text-red-600" onPress={() => confirmDelete(m.id)}>Delete</Text>
+              <View className="flex-row items-center">
+                <Pressable
+                  className="p-2"
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${m.nickname || (isCard ? 'card' : 'bank account')} ${m.maskedNumber}`}
+                  onPress={() => setForm(m.id)}
+                >
+                  <Pencil size={16} color={colors.faint} />
+                </Pressable>
+                <Pressable
+                  className={`p-2 ${busy ? 'opacity-50' : ''}`}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${m.nickname || (isCard ? 'card' : 'bank account')} ${m.maskedNumber}`}
+                  accessibilityState={{ disabled: busy }}
+                  disabled={busy}
+                  onPress={() => confirmDelete(m.id)}
+                >
+                  <Trash2 size={16} color={colors.faint} />
+                </Pressable>
               </View>
-              {!isCard && <RevealAccount id={m.id} />}
             </View>
-          ))}
-          <View className="mt-3">
-            <Btn variant="ghost" label={isCard ? '+ Add card' : '+ Add bank account'} onPress={() => setForm('add')} />
+            {!m.isDefault && (
+              <Pressable
+                className="ml-[52px] mt-1 self-start py-1"
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={`Set ${m.nickname || (isCard ? 'card' : 'bank account')} as default`}
+                accessibilityState={{ disabled: busy }}
+                disabled={busy}
+                onPress={() => makeDefault.mutate(m.id)}
+              >
+                <Text className="text-xs font-medium text-primary-600">Set default</Text>
+              </Pressable>
+            )}
+            {!isCard && <RevealAccount id={m.id} />}
           </View>
-        </>
+        ))
       )}
     </Panel>
   );
@@ -142,22 +202,56 @@ function RevealAccount({ id }: { id: string }) {
 
   if (!open) {
     return (
-      <Text className="mt-2 text-sm text-gray-500" onPress={() => setOpen(true)}>👁 Show full account number</Text>
+      <Pressable
+        className="ml-[52px] mt-1 flex-row items-center gap-1.5 self-start py-1"
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="Show full account number"
+        onPress={() => setOpen(true)}
+      >
+        <Eye color={colors.muted} size={14} />
+        <Text className="text-xs font-medium text-slate-500">Show full account number</Text>
+      </Pressable>
     );
   }
   if (number) {
     return (
-      <View className="mt-2 gap-1">
-        <Text selectable className="rounded-lg bg-gray-100 px-3 py-2 font-semibold tracking-widest text-gray-900">{number}</Text>
-        <Text className="text-xs text-gray-400">Hides itself in 15 seconds</Text>
-        <Text className="text-sm text-primary-600" onPress={close}>Hide</Text>
+      <View className="ml-[52px] mt-2 gap-1.5">
+        <Text selectable className="self-start rounded-lg bg-slate-100 px-3 py-1.5 text-sm tracking-wider text-slate-800">
+          {number}
+        </Text>
+        <Text className="text-xs text-slate-400">Hides itself in 15 seconds</Text>
+        <Pressable
+          className="flex-row items-center gap-1 self-start py-1"
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Hide full account number"
+          onPress={close}
+        >
+          <EyeOff color={colors.muted} size={14} />
+          <Text className="text-xs font-medium text-slate-500">Hide</Text>
+        </Pressable>
       </View>
     );
   }
   return (
-    <View className="mt-2 gap-2">
-      <Field value={password} onChangeText={setPassword} secureTextEntry placeholder="Enter your password" autoCapitalize="none" />
-      {reveal.error && <Text className="text-xs text-red-600">{reveal.error.message}</Text>}
+    <View className="ml-[52px] mt-2 gap-2">
+      <RefField
+        label="Your password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        placeholder="Enter your password"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType="done"
+        onSubmitEditing={() => {
+          if (password && !reveal.isPending) reveal.mutate();
+        }}
+      />
+      {reveal.error && <Text accessibilityRole="alert" className="text-xs text-rose-600">{reveal.error.message}</Text>}
       <View className="flex-row gap-3">
         <View className="flex-1"><Btn label={reveal.isPending ? 'Checking…' : 'Show'} onPress={() => reveal.mutate()} disabled={reveal.isPending || !password} /></View>
         <View className="flex-1"><Btn variant="ghost" label="Cancel" onPress={close} /></View>
@@ -187,6 +281,10 @@ function MethodForm({
   const [changeNumber, setChangeNumber] = useState(!editing);
   const [isDefault, setIsDefault] = useState(existing?.isDefault ?? false);
   const [error, setError] = useState<string | null>(null);
+  const lastFourRef = useRef<InputRef>(null);
+  const accountRef = useRef<InputRef>(null);
+  const confirmRef = useRef<InputRef>(null);
+  const nicknameRef = useRef<InputRef>(null);
 
   const save = useMutation({
     mutationFn: (body: object) =>
@@ -218,55 +316,133 @@ function MethodForm({
   }
 
   return (
-    <View className="gap-3">
-      <Text className="font-semibold text-gray-900">
-        {editing ? 'Edit' : 'Add'} {isCard ? 'card' : 'bank account'}
-      </Text>
+    <View className="gap-4">
+      <View className="flex-row items-center justify-between">
+        <Text className="text-sm font-semibold text-slate-800">
+          {editing ? 'Edit' : 'Add'} {isCard ? 'card' : 'bank account'}
+        </Text>
+        <Pressable hitSlop={10} accessibilityRole="button" accessibilityLabel={`Close ${editing ? 'edit' : 'add'} ${isCard ? 'card' : 'bank account'} form`} onPress={onCancel}>
+          <X size={16} color={colors.faint} />
+        </Pressable>
+      </View>
       <Notice error={error ?? save.error} />
       {isCard ? (
         <>
-          <Field label="Card nickname" value={nickname} onChangeText={setNickname} placeholder="e.g. HDFC Credit Card" maxLength={40} />
+          <RefField
+            label="Card nickname"
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="e.g. HDFC Credit Card"
+            maxLength={40}
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmitEditing={() => lastFourRef.current?.focus()}
+          />
           <View>
-            <Text className="mb-1 text-xs font-medium text-gray-600">Card type</Text>
-            <View className="flex-row gap-2">
-              <Chip label="Credit" active={cardType === 'CREDIT'} onPress={() => setCardType('CREDIT')} />
-              <Chip label="Debit" active={cardType === 'DEBIT'} onPress={() => setCardType('DEBIT')} />
+            <Text className="mb-1.5 text-xs font-medium text-slate-500">Card type</Text>
+            <View className="flex-row gap-2" accessibilityRole="radiogroup">
+              {(['CREDIT', 'DEBIT'] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  accessibilityRole="radio"
+                  accessibilityLabel={t === 'CREDIT' ? 'Credit card' : 'Debit card'}
+                  accessibilityState={{ selected: cardType === t }}
+                  onPress={() => setCardType(t)}
+                  className={`flex-1 items-center rounded-xl border px-3 py-2.5 ${
+                    cardType === t ? 'border-primary-500 bg-primary-50' : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <Text className={`text-sm ${cardType === t ? 'font-semibold text-primary-700' : 'text-slate-600'}`}>
+                    {t === 'CREDIT' ? 'Credit' : 'Debit'}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
-          <Field label="Last 4 digits" value={lastFour} onChangeText={(t) => setLastFour(digits(t).slice(0, 4))} keyboardType="number-pad" placeholder="1234" maxLength={4} />
-          <Text className="text-xs text-gray-400">We never ask for the full card number, expiry, CVV or PIN.</Text>
+          <RefField
+            ref={lastFourRef}
+            label="Last 4 digits"
+            value={lastFour}
+            onChangeText={(t) => setLastFour(digits(t).slice(0, 4))}
+            keyboardType="number-pad"
+            placeholder="1234"
+            maxLength={4}
+            returnKeyType="done"
+            onSubmitEditing={submit}
+          />
+          <Text className="text-xs text-slate-400">We never ask for the full card number, expiry, CVV or PIN.</Text>
         </>
       ) : (
         <>
           {editing && !changeNumber ? (
-            <View className="flex-row items-center justify-between rounded-xl bg-gray-50 px-3 py-3">
-              <Text className="tracking-wider text-gray-600">{existing!.maskedNumber}</Text>
-              <Text className="text-sm text-primary-600" onPress={() => setChangeNumber(true)}>Change number</Text>
+            <View className="flex-row items-center justify-between gap-3 rounded-xl bg-white px-3 py-2.5">
+              <Text numberOfLines={1} className="shrink tracking-wider text-slate-600">{existing!.maskedNumber}</Text>
+              <Pressable hitSlop={8} accessibilityRole="button" accessibilityLabel="Change account number" onPress={() => setChangeNumber(true)}>
+                <Text className="text-xs font-medium text-primary-600">Change account number</Text>
+              </Pressable>
             </View>
           ) : (
             <>
-              <Field label="Account number" value={account} onChangeText={(t) => setAccount(digits(t).slice(0, 18))} secureTextEntry keyboardType="number-pad" placeholder="Account number" />
-              <Field label="Confirm account number" value={confirmAccount} onChangeText={(t) => setConfirmAccount(digits(t).slice(0, 18))} keyboardType="number-pad" placeholder="Re-enter account number" />
+              <RefField
+                ref={accountRef}
+                label="Account number"
+                value={account}
+                onChangeText={(t) => setAccount(digits(t).slice(0, 18))}
+                secureTextEntry
+                keyboardType="number-pad"
+                placeholder="Account number"
+                autoComplete="off"
+                textContentType="none"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => confirmRef.current?.focus()}
+              />
+              <RefField
+                ref={confirmRef}
+                label="Confirm account number"
+                value={confirmAccount}
+                onChangeText={(t) => setConfirmAccount(digits(t).slice(0, 18))}
+                keyboardType="number-pad"
+                placeholder="Re-enter account number"
+                autoComplete="off"
+                textContentType="none"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => nicknameRef.current?.focus()}
+              />
             </>
           )}
-          <Field label="Nickname (optional)" value={nickname} onChangeText={setNickname} placeholder="e.g. Salary account" maxLength={40} />
-          <Text className="text-xs text-gray-400">Stored encrypted. Only the last 4 digits are ever shown.</Text>
+          <RefField
+            ref={nicknameRef}
+            label="Nickname (optional)"
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="e.g. Salary account"
+            maxLength={40}
+            autoCapitalize="words"
+            returnKeyType="done"
+            onSubmitEditing={submit}
+          />
+          <Text className="text-xs text-slate-400">Stored encrypted. Only the last 4 digits are ever shown.</Text>
         </>
       )}
       <Pressable
+        accessibilityRole="checkbox"
+        accessibilityLabel={`Set as default ${isCard ? 'card' : 'bank account'}`}
+        accessibilityState={{ checked: isDefault || !!existing?.isDefault, disabled: !!existing?.isDefault }}
         onPress={() => !existing?.isDefault && setIsDefault(!isDefault)}
         className={`flex-row items-center gap-2 ${existing?.isDefault ? 'opacity-60' : ''}`}
       >
-        <View className={`h-5 w-5 items-center justify-center rounded border ${isDefault ? 'border-primary-600 bg-primary-600' : 'border-gray-300 bg-white'}`}>
-          {isDefault && <Text className="text-xs font-bold text-white">✓</Text>}
+        <View className={`h-5 w-5 items-center justify-center rounded border ${isDefault ? 'border-primary-600 bg-primary-600' : 'border-slate-300 bg-white'}`}>
+          {isDefault && <Check color={colors.white} size={14} />}
         </View>
-        <Text className="text-sm text-gray-700">
+        <Text className="flex-1 text-sm text-slate-600">
           Set as default {isCard ? 'card' : 'bank account'}
           {existing?.isDefault ? ' (already the default)' : ''}
         </Text>
       </Pressable>
       <View className="flex-row gap-3">
-        <View className="flex-1"><Btn label={save.isPending ? 'Saving…' : 'Save'} onPress={submit} disabled={save.isPending} /></View>
+        <View className="flex-1"><Btn label={save.isPending ? 'Saving…' : 'Save'} icon={Check} onPress={submit} disabled={save.isPending} /></View>
         <View className="flex-1"><Btn variant="ghost" label="Cancel" onPress={onCancel} /></View>
       </View>
     </View>

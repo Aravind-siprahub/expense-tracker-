@@ -1,11 +1,20 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { markSlow, markSlowDone } from './connection';
+import { TimeoutError, fetchWithTimeout } from './http';
 
-// Android emulator reaches the host machine at 10.0.2.2. On a real phone set
-// EXPO_PUBLIC_API_URL to your computer's LAN address (e.g. http://192.168.1.5:3001).
+// Where the API lives:
+//  - EXPO_PUBLIC_API_URL wins when set (eas.json sets it for preview and production builds; on a real phone in
+//    development set it to your computer's LAN address, e.g. http://192.168.1.5:3001).
+//  - In development without it: the Android emulator reaches this computer at 10.0.2.2, iOS at localhost.
+//  - In a release build without it: the live API. (Never localhost: a release build must not point at a laptop.)
+const LIVE_API = 'https://family-expense-tracker-api-5l2h.onrender.com';
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
-  (Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001');
+  (__DEV__ ? (Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001') : LIVE_API);
+
+/** The free hosting plan can need about a minute to wake up, so allow for that before giving up. */
+const REQUEST_TIMEOUT_MS = 45_000;
 
 const KEY = 'fet_token';
 let token: string | null = null;
@@ -48,18 +57,36 @@ export async function api<T = unknown>(
   path: string,
   body?: unknown,
 ): Promise<T> {
+  // Remember whether THIS request carried a token. The saved login loads in the background at start-up, so
+  // the global token can appear while a token-less request is still in flight; that request's 401 must not log the user out.
+  const sentToken = token;
   let res: Response;
   try {
-    res = await fetch(API_URL + path, {
-      method,
-      headers: {
-        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
+    let slowReported = false;
+    res = await fetchWithTimeout(
+      API_URL + path,
+      {
+        method,
+        headers: {
+          ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+          ...(sentToken ? { authorization: `Bearer ${sentToken}` } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    throw new ApiError(0, 'Cannot reach the server. Check your internet and the API address.');
+      {
+        timeoutMs: REQUEST_TIMEOUT_MS,
+        onSlow: () => {
+          slowReported = true;
+          markSlow();
+        },
+        onDone: () => {
+          if (slowReported) markSlowDone();
+        },
+      },
+    );
+  } catch (e) {
+    if (e instanceof TimeoutError) throw new ApiError(0, 'The server is taking too long to answer. Please try again in a moment.');
+    throw new ApiError(0, 'Cannot reach the server. Check your internet connection and try again.');
   }
   // The server hands active users a fresh token about once a day (sliding session).
   const refreshed = res.headers.get('x-refresh-token');
@@ -67,7 +94,7 @@ export async function api<T = unknown>(
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
   // Only our own API's "session expired" answer logs the user out.
-  if (res.status === 401 && token && data?.code === 'SESSION_EXPIRED') onUnauthorized?.();
+  if (res.status === 401 && sentToken && sentToken === token && data?.code === 'SESSION_EXPIRED') onUnauthorized?.();
   if (!res.ok) throw new ApiError(res.status, data?.message ?? 'Request failed');
   return data as T;
 }

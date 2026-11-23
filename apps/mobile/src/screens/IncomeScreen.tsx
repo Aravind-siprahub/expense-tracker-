@@ -1,10 +1,31 @@
-import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
+import { Wallet } from 'lucide-react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { currentMonth, formatAmountInput, inr, monthLabel, toPaise, toRupeesText } from '../lib/format';
+import {
+  currentMonth,
+  formatAmountInput,
+  inr,
+  monthLabel,
+  toPaise,
+  toRupeesText,
+} from '../lib/format';
 import type { FamilyInfo, IncomeEntry } from '../lib/types';
-import { Btn, Chip, Field, Loading, MonthSwitcher, Notice, Panel, Screen, useMe } from '../ui';
+import { RefField, type InputRef } from './AuthScreen';
+import {
+  Avatar,
+  Btn,
+  Chip,
+  EmptyState,
+  Loading,
+  MonthSwitcher,
+  Notice,
+  Panel,
+  Screen,
+  StatCard,
+  useMe,
+} from '../ui';
 
 export function IncomeScreen() {
   const qc = useQueryClient();
@@ -16,11 +37,19 @@ export function IncomeScreen() {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const noteRef = useRef<InputRef>(null);
 
-  const fam = useQuery({ queryKey: ['family'], queryFn: () => api<FamilyInfo>('GET', '/family') });
+  const fam = useQuery({
+    queryKey: ['family'],
+    queryFn: () => api<FamilyInfo>('GET', '/family'),
+  });
   const list = useQuery({
     queryKey: ['income', month],
-    queryFn: () => api<{ totalPaise: number; items: IncomeEntry[] }>('GET', `/income?month=${month}`),
+    queryFn: () =>
+      api<{ totalPaise: number; items: IncomeEntry[] }>(
+        'GET',
+        `/income?month=${month}`
+      ),
   });
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['income'] });
@@ -34,13 +63,19 @@ export function IncomeScreen() {
     setNote('');
   };
   const save = useMutation({
-    mutationFn: (body: object) => (editing ? api('PATCH', `/income/${editing.id}`, body) : api('POST', '/income', body)),
+    mutationFn: (body: object) =>
+      editing
+        ? api('PATCH', `/income/${editing.id}`, body)
+        : api('POST', '/income', body),
     onSuccess: () => {
       refresh();
       reset();
     },
   });
-  const del = useMutation({ mutationFn: (id: string) => api('DELETE', `/income/${id}`), onSuccess: refresh });
+  const del = useMutation({
+    mutationFn: (id: string) => api('DELETE', `/income/${id}`),
+    onSuccess: refresh,
+  });
 
   function submit() {
     setFormError(null);
@@ -54,85 +89,201 @@ export function IncomeScreen() {
       ...(memberId ? { userId: memberId } : {}),
     });
   }
-  const confirmDelete = (id: string) =>
-    Alert.alert('Delete income', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => del.mutate(id) },
-    ]);
+  // The dialog names the entry (type, note and amount) so the person can see which one they are deleting.
+  const confirmDelete = (id: string, summary: string) =>
+    Alert.alert(
+      'Delete income',
+      `${summary}
+
+This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => del.mutate(id) },
+      ]
+    );
 
   const myId = me.data?.user.id;
   const isAdmin = me.data?.family?.role === 'ADMIN';
 
   return (
-    <Screen onRefresh={() => list.refetch()} refreshing={list.isRefetching}>
+    <Screen
+      title="Income"
+      subtitle="Money coming into the family"
+      onRefresh={() => list.refetch()}
+      refreshing={list.isRefetching}
+    >
       <MonthSwitcher value={month} onChange={setMonth} />
-      <View className="rounded-xl border border-gray-200 bg-white p-4">
-        <Text className="text-xs text-gray-500">Total family income · {monthLabel(month)}</Text>
-        <Text className="mt-1 text-3xl font-bold text-green-600">{inr(list.data?.totalPaise ?? 0)}</Text>
-      </View>
+      {list.isLoading ? (
+        <Panel>
+          <Loading />
+        </Panel>
+      ) : list.data ? (
+        <StatCard
+          label="Total family income"
+          value={inr(list.data.totalPaise)}
+          tone="green"
+          icon={Wallet}
+          hint={monthLabel(month)}
+        />
+      ) : null}
 
-      <Panel title={editing ? 'Edit income' : 'Add income'}>
+      <Panel
+        title={editing ? 'Edit income' : 'Add income'}
+        icon={Wallet}
+        tone="blue"
+      >
         <Notice error={formError ?? save.error} />
-        <View className="mb-3 flex-row gap-2">
-          <Chip label="Salary" active={type === 'SALARY'} onPress={() => setType('SALARY')} />
-          <Chip label="Other" active={type === 'OTHER'} onPress={() => setType('OTHER')} />
-        </View>
-        <Text className="mb-1 text-xs font-medium text-gray-600">Earned by</Text>
-        <View className="mb-3 flex-row flex-wrap gap-2">
-          <Chip label="Me" active={!memberId || memberId === me.data?.user.id} onPress={() => setMemberId('')} />
-          {fam.data?.members
-            .filter((m) => m.userId !== me.data?.user.id)
-            .map((m) => (
-              <Chip key={m.userId} label={m.name} active={memberId === m.userId} onPress={() => setMemberId(m.userId)} />
-            ))}
-        </View>
-        <View className="gap-3">
-          <Field label="Amount (₹)" value={amount} onChangeText={(t) => setAmount(formatAmountInput(t))} keyboardType="decimal-pad" placeholder="75000" />
-          <Field label="Note (optional)" value={note} onChangeText={setNote} placeholder="Freelance work" maxLength={200} />
-          <Btn label={save.isPending ? 'Saving…' : 'Save'} onPress={submit} disabled={save.isPending} />
-          {editing && <Btn label="Cancel edit" variant="ghost" onPress={reset} />}
+        <View className="gap-3.5">
+          <View>
+            <Text className="mb-1.5 text-xs font-medium text-slate-500">
+              Type
+            </Text>
+            <View className="flex-row gap-2">
+              <Chip
+                label="Salary"
+                active={type === 'SALARY'}
+                onPress={() => setType('SALARY')}
+              />
+              <Chip
+                label="Other"
+                active={type === 'OTHER'}
+                onPress={() => setType('OTHER')}
+              />
+            </View>
+          </View>
+          <View>
+            <Text className="mb-1.5 text-xs font-medium text-slate-500">
+              Earned by
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              <Chip
+                label="Me"
+                active={!memberId || memberId === me.data?.user.id}
+                onPress={() => setMemberId('')}
+              />
+              {fam.data?.members
+                .filter((m) => m.userId !== me.data?.user.id)
+                .map((m) => (
+                  <Chip
+                    key={m.userId}
+                    label={m.name}
+                    active={memberId === m.userId}
+                    onPress={() => setMemberId(m.userId)}
+                  />
+                ))}
+            </View>
+          </View>
+          <RefField
+            label="Amount (₹)"
+            value={amount}
+            onChangeText={(t) => setAmount(formatAmountInput(t))}
+            keyboardType="decimal-pad"
+            placeholder="75000"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => noteRef.current?.focus()}
+          />
+          <RefField
+            ref={noteRef}
+            label="Note (optional)"
+            value={note}
+            onChangeText={setNote}
+            placeholder="Freelance work"
+            maxLength={200}
+            autoCapitalize="sentences"
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (!save.isPending) submit();
+            }}
+          />
+          <Btn
+            label={save.isPending ? 'Saving…' : 'Save'}
+            onPress={submit}
+            disabled={save.isPending}
+          />
+          {editing && <Btn label="Cancel" variant="ghost" onPress={reset} />}
         </View>
       </Panel>
 
       <Notice error={list.error ?? del.error} />
-      {list.isLoading ? (
-        <Loading />
-      ) : list.data?.items.length ? (
-        <Panel title="Entries">
-          {list.data.items.map((e) => (
-            <View key={e.id} className="border-b border-gray-100 py-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1 pr-3">
-                  <Text className="font-medium text-gray-900">
-                    {e.type === 'SALARY' ? 'Salary' : 'Other'}
-                    {e.note ? ` · ${e.note}` : ''}
-                  </Text>
-                  <Text className="text-xs text-gray-500">{e.member}</Text>
-                </View>
-                <Text className="font-semibold text-green-600">+{inr(e.amountPaise)}</Text>
+      {list.isLoading ? null : list.data?.items.length ? (
+        <Panel title={monthLabel(month)}>
+          {list.data.items.map((e, i) => (
+            <View
+              key={e.id}
+              className={`flex-row items-center gap-3 py-3.5 ${i > 0 ? 'border-t border-slate-100' : ''}`}
+            >
+              <Avatar
+                name={e.type === 'SALARY' ? 'Salary' : 'Other'}
+                size={38}
+              />
+              <View className="min-w-0 flex-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-sm font-semibold text-slate-800"
+                >
+                  {e.type === 'SALARY' ? 'Salary' : 'Other'}
+                </Text>
+                <Text numberOfLines={1} className="text-xs text-slate-500">
+                  {e.note ? `${e.note} · ` : ''}
+                  {e.member}
+                </Text>
+                {(isAdmin || e.userId === myId || e.createdById === myId) && (
+                  <View className="mt-1.5 flex-row gap-4">
+                    <Pressable
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit income ${e.type === 'SALARY' ? 'Salary' : 'Other'} for ${e.member}`}
+                      className="py-1"
+                      onPress={() => {
+                        setEditing(e);
+                        setType(e.type);
+                        setMemberId(e.userId);
+                        setAmount(toRupeesText(e.amountPaise));
+                        setNote(e.note ?? '');
+                        setMonth(e.month);
+                      }}
+                    >
+                      <Text className="text-sm font-medium text-primary-600">
+                        Edit
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete income ${e.type === 'SALARY' ? 'Salary' : 'Other'} for ${e.member}`}
+                      className="py-1"
+                      onPress={() =>
+                        confirmDelete(
+                          e.id,
+                          `${e.type === 'SALARY' ? 'Salary' : 'Other'}${e.note ? ` (${e.note})` : ''}: ${inr(e.amountPaise)}`
+                        )
+                      }
+                    >
+                      <Text className="text-sm font-medium text-rose-600">
+                        Delete
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
-              {(isAdmin || e.userId === myId || e.createdById === myId) && (
-                <View className="mt-2 flex-row gap-5">
-                  <Text
-                    className="text-sm text-primary-600"
-                    onPress={() => {
-                      setEditing(e);
-                      setType(e.type);
-                      setMemberId(e.userId);
-                      setAmount(toRupeesText(e.amountPaise));
-                      setNote(e.note ?? '');
-                    }}
-                  >
-                    Edit
-                  </Text>
-                  <Text className="text-sm text-red-600" onPress={() => confirmDelete(e.id)}>Delete</Text>
-                </View>
-              )}
+              <Text
+                numberOfLines={1}
+                className="shrink-0 text-sm font-semibold text-emerald-600"
+              >
+                +{inr(e.amountPaise)}
+              </Text>
             </View>
           ))}
         </Panel>
       ) : (
-        <Text className="py-6 text-center text-gray-400">No income recorded for this month.</Text>
+        <Panel>
+          <EmptyState
+            icon={Wallet}
+            title="No income recorded"
+            text="Add a salary or other income for this month."
+          />
+        </Panel>
       )}
     </Screen>
   );

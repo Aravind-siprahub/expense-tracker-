@@ -62,7 +62,14 @@ export interface Summary {
   incomePaise: number;
   expensesPaise: number;
   remainingPaise: number;
+  savingsPaise?: number;
+  savingsRate?: number;
   totalBudgetPaise: number | null;
+  remainingBudgetPaise?: number | null;
+  budgetAlerts?: {
+    overBudget: { categoryId: string; name: string; spentPaise: number; budgetPaise: number; overByPaise: number; percent: number }[];
+    nearBudget: { categoryId: string; name: string; spentPaise: number; budgetPaise: number; remainingPaise: number; percent: number }[];
+  };
   byCategory: { categoryId: string; name: string; spentPaise: number; budgetPaise: number }[];
   byMember: { userId: string; name: string; spentPaise: number }[];
   recent: {

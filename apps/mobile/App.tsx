@@ -6,11 +6,12 @@ import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionProvider } from './src/session';
 import { Root } from './src/Root';
+import { ErrorBoundary } from './src/ErrorBoundary';
 
-// Keep devices in sync: refresh every 30 seconds while the app is open, and again
-// whenever the app returns to the foreground.
+// Data refreshes when the app returns to the foreground and when the network comes back. Only the screens that
+// show shared family data also poll (see useLiveRefetch in src/ui.tsx), and only while they are on screen.
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 5_000, refetchInterval: 30_000 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 10_000, refetchInterval: false } },
 });
 
 export default function App() {
@@ -23,11 +24,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <Root />
-        </SessionProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>
+            <Root />
+          </SessionProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
