@@ -10,7 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "seed:sample": "node scripts/seed-sample.cjs"
+    "seed:sample": "node scripts/seed-sample.cjs",
+    "user:delete": "node scripts/delete-user.cjs"
   },
   "dependencies": {
     "@prisma/client": "^5.13.0"
