@@ -186,6 +186,8 @@ export const ExpenseQuerySchema = z.object({
   categoryId: z.string().optional(),
   userId: z.string().optional(),
   paymentMethod: PaymentMethodSchema.optional(),
+  // One of the caller's own saved cards / bank accounts (other people's saved methods are private).
+  paymentMethodId: z.string().min(1).max(64).optional(),
   q: z.string().trim().max(100).optional(),
   sortBy: z.enum(['date', 'amount']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),

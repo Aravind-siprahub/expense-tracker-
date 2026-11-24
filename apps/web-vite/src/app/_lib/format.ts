@@ -90,3 +90,39 @@ export const METHOD_LABEL: Record<string, string> = {
   CARD: 'Card',
   BANK_TRANSFER: 'Bank Transfer',
 };
+
+export interface RangePreset {
+  id: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+/** Ready-made date ranges for the Expense History filter. `from`/`to` are "YYYY-MM-DD", or empty for "any". */
+export function rangePresets(now = new Date()): RangePreset[] {
+  const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const daysAgo = (n: number) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - n);
+    return iso(d);
+  };
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const thisMonth = `${y}-${pad(m)}`;
+  const prev = new Date(y, m - 2, 1);
+  const lastMonth = `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}`;
+  // Indian financial year: 1 April to 31 March.
+  const fyStart = m >= 4 ? y : y - 1;
+  const monthEnd = (ym: string) => {
+    const [yy, mm] = ym.split('-').map(Number);
+    return `${ym}-${pad(new Date(yy, mm, 0).getDate())}`;
+  };
+  return [
+    { id: 'month', label: 'This month', from: `${thisMonth}-01`, to: monthEnd(thisMonth) },
+    { id: 'lastmonth', label: 'Last month', from: `${lastMonth}-01`, to: monthEnd(lastMonth) },
+    { id: '7d', label: 'Last 7 days', from: daysAgo(6), to: iso(now) },
+    { id: '30d', label: 'Last 30 days', from: daysAgo(29), to: iso(now) },
+    { id: 'year', label: 'This year', from: `${y}-01-01`, to: `${y}-12-31` },
+    { id: 'fy', label: `FY ${fyStart}-${String((fyStart + 1) % 100).padStart(2, '0')}`, from: `${fyStart}-04-01`, to: `${fyStart + 1}-03-31` },
+    { id: 'all', label: 'All time', from: '', to: '' },
+  ];
+}

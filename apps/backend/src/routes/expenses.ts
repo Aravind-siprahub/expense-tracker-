@@ -104,6 +104,7 @@ expenses.get(
       categoryId?: string;
       userId?: string;
       paymentMethod?: Method;
+      paymentMethodId?: string;
       q?: string;
       sortBy?: 'date' | 'amount';
       sortOrder?: 'asc' | 'desc';
@@ -121,9 +122,28 @@ expenses.get(
     if (q.categoryId) where.categoryId = q.categoryId;
     if (q.userId) where.userId = q.userId;
     if (q.paymentMethod) where.paymentMethod = q.paymentMethod;
+    const and: Prisma.ExpenseWhereInput[] = [];
+    // One saved card / bank account. Saved methods are private to their owner, so the filter only ever
+    // matches the caller's own expenses: asking for someone else's method id returns nothing.
+    if (q.paymentMethodId) and.push({ paymentMethodId: q.paymentMethodId, userId: req.ctx.userId });
     if (q.q) {
-      where.note = { contains: q.q, mode: 'insensitive' };
+      // Search the note, category name, who spent it and the amount ("1500" or "₹1,500.50").
+      // The caller's own saved card / account nickname is searchable too, but nobody else's.
+      const term = q.q;
+      const or: Prisma.ExpenseWhereInput[] = [
+        { note: { contains: term, mode: 'insensitive' } },
+        { category: { name: { contains: term, mode: 'insensitive' } } },
+        { user: { name: { contains: term, mode: 'insensitive' } } },
+        { userId: req.ctx.userId, savedMethod: { nickname: { contains: term, mode: 'insensitive' } } },
+      ];
+      const digits = term.replace(/[₹,\s]/g, '');
+      const rupees = Number(digits);
+      if (digits !== '' && /^\d+(\.\d{1,2})?$/.test(digits) && rupees > 0 && rupees <= 20_000_000) {
+        or.push({ amountPaise: Math.round(rupees * 100) });
+      }
+      and.push({ OR: or });
     }
+    if (and.length) where.AND = and;
 
     const sortOrder = q.sortOrder ?? 'desc';
     const orderBy: Prisma.ExpenseOrderByWithRelationInput[] =

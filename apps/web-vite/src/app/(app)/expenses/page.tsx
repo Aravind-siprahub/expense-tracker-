@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowUpDown,
@@ -11,7 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../../_lib/api';
-import { dayLabel, inr, METHOD_LABEL } from '../../_lib/format';
+import { dayLabel, inr, METHOD_LABEL, rangePresets } from '../../_lib/format';
 import type { Category, ExpenseListResponse, FamilyInfo } from '../../_lib/types';
 import {
   EmptyState,
@@ -27,6 +27,7 @@ import {
   useMe,
 } from '../../_components/Shell';
 import { DocSearchArt } from '../../_components/Illustrations';
+import { useSavedMethods } from '../../_components/PaymentMethods';
 import { categoryVisual } from '../../_components/categoryIcons';
 
 export default function ExpenseHistory() {
@@ -38,11 +39,40 @@ export default function ExpenseHistory() {
   const [to, setTo] = useState(sp.get('to') ?? '');
   const [categoryId, setCategoryId] = useState(sp.get('categoryId') ?? '');
   const [userId, setUserId] = useState(sp.get('userId') ?? '');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  // One dropdown for both kinds of payment filter: "mode:UPI" (a payment mode) or "saved:<id>" (one of my saved cards / accounts).
+  const [pay, setPay] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [search, setSearch] = useState('');
+  const paymentMethod = pay.startsWith('mode:') ? pay.slice(5) : '';
+  const paymentMethodId = pay.startsWith('saved:') ? pay.slice(6) : '';
   const [sort, setSort] = useState('date_desc');
   const [page, setPage] = useState(1);
   const limit = 25;
+
+  // Search runs shortly after typing stops, not once per keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearch(searchText);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [searchText]);
+
+  // Dashboard, Reports and Family open this page with filters in the address. Apply them even when this
+  // page is already open (the state above is only read once, when the page first appears).
+  const spKey = sp.toString();
+  useEffect(() => {
+    setFrom(sp.get('from') ?? '');
+    setTo(sp.get('to') ?? '');
+    setCategoryId(sp.get('categoryId') ?? '');
+    setUserId(sp.get('userId') ?? '');
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spKey]);
+
+  const saved = useSavedMethods();
+  const presets = rangePresets();
+  const activePreset = presets.find((p) => p.from === from && p.to === to)?.id;
 
   const cats = useQuery({ queryKey: ['categories'], queryFn: () => api<Category[]>('GET', '/categories') });
   const fam = useQuery({ queryKey: ['family'], queryFn: () => api<FamilyInfo>('GET', '/family') });
@@ -53,6 +83,7 @@ export default function ExpenseHistory() {
   if (categoryId) params.set('categoryId', categoryId);
   if (userId) params.set('userId', userId);
   if (paymentMethod) params.set('paymentMethod', paymentMethod);
+  if (paymentMethodId) params.set('paymentMethodId', paymentMethodId);
   if (search.trim()) params.set('q', search.trim());
   const [sortBy, sortOrder] = sort.split('_');
   if (sortBy) params.set('sortBy', sortBy);
@@ -61,7 +92,7 @@ export default function ExpenseHistory() {
   params.set('limit', String(limit));
 
   const list = useQuery({
-    queryKey: ['expenses', from, to, categoryId, userId, paymentMethod, search, sort, page],
+    queryKey: ['expenses', from, to, categoryId, userId, paymentMethod, paymentMethodId, search, sort, page],
     queryFn: () => api<ExpenseListResponse>('GET', `/expenses?${params}`),
   });
 
@@ -76,7 +107,7 @@ export default function ExpenseHistory() {
 
   const myId = me.data?.user.id;
   const isAdmin = me.data?.family?.role === 'ADMIN';
-  const filtered = !!(from || to || categoryId || userId || paymentMethod || search);
+  const filtered = !!(from || to || categoryId || userId || pay || search);
   const rangeInvalid = !!from && !!to && from > to;
 
   const totalCount = list.data?.totalCount ?? list.data?.items.length ?? 0;
@@ -87,7 +118,8 @@ export default function ExpenseHistory() {
     setTo('');
     setCategoryId('');
     setUserId('');
-    setPaymentMethod('');
+    setPay('');
+    setSearchText('');
     setSearch('');
     setSort('date_desc');
     setPage(1);
@@ -114,12 +146,9 @@ export default function ExpenseHistory() {
             </span>
             <input
               className={`${input} !pl-10`}
-              placeholder="Search by note, description..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              placeholder="Search note, category, person or amount..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
           <div>
@@ -142,6 +171,29 @@ export default function ExpenseHistory() {
               </select>
             </div>
           </div>
+        </div>
+
+        {/* Quick date ranges */}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Quick date range">
+          {presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={activePreset === p.id}
+              onClick={() => {
+                setFrom(p.from);
+                setTo(p.to);
+                setPage(1);
+              }}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                activePreset === p.id
+                  ? 'border-primary-600 bg-primary-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-700'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
 
         {/* Detailed Filters */}
@@ -210,17 +262,28 @@ export default function ExpenseHistory() {
             <Label>Payment method</Label>
             <select
               className={input}
-              value={paymentMethod}
+              value={pay}
               onChange={(e) => {
-                setPaymentMethod(e.target.value);
+                setPay(e.target.value);
                 setPage(1);
               }}
             >
               <option value="">All methods</option>
-              <option value="UPI">UPI</option>
-              <option value="CASH">Cash</option>
-              <option value="CARD">Card</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <optgroup label="Payment mode">
+                <option value="mode:UPI">UPI</option>
+                <option value="mode:CASH">Cash</option>
+                <option value="mode:CARD">Any card</option>
+                <option value="mode:BANK_TRANSFER">Any bank transfer</option>
+              </optgroup>
+              {saved.data?.length ? (
+                <optgroup label="My saved cards and accounts">
+                  {saved.data.map((m) => (
+                    <option key={m.id} value={`saved:${m.id}`}>
+                      {m.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </div>
         </div>
@@ -235,6 +298,7 @@ export default function ExpenseHistory() {
           </div>
           <div className="flex items-center gap-3">
             <span>
+              {totalCount} {totalCount === 1 ? 'transaction' : 'transactions'} ·{' '}
               Total:{' '}
               <b className="text-base font-bold text-slate-900">{inr(list.data?.totalPaise ?? 0)}</b>
             </span>

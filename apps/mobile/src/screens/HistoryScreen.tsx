@@ -25,8 +25,9 @@ import {
   inr,
   METHOD_LABEL,
   monthBounds,
-  shiftMonth,
+  rangePresets,
 } from '../lib/format';
+import { useSavedMethods } from '../PaymentMethods';
 import type { Category, Expense, FamilyInfo } from '../lib/types';
 import { categoryVisual } from '../categoryIcons';
 import {
@@ -61,12 +62,13 @@ const SORTS: [string, string][] = [
   ['amount_desc', 'Highest first'],
   ['amount_asc', 'Lowest first'],
 ];
+// "mode:X" filters by payment mode; "saved:<id>" (added below) filters by one of the person's own saved cards / accounts.
 const METHODS: [string, string][] = [
   ['', 'All methods'],
-  ['UPI', 'UPI'],
-  ['CASH', 'Cash'],
-  ['CARD', 'Card'],
-  ['BANK_TRANSFER', 'Bank Transfer'],
+  ['mode:UPI', 'UPI'],
+  ['mode:CASH', 'Cash'],
+  ['mode:CARD', 'Any card'],
+  ['mode:BANK_TRANSFER', 'Any bank transfer'],
 ];
 
 const Label = ({ children }: { children: string }) => (
@@ -97,8 +99,19 @@ export function HistoryScreen() {
     p?.stamp ? (p.categoryId ?? '') : ''
   );
   const [userId, setUserId] = useState(p?.stamp ? (p.userId ?? '') : '');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [pay, setPay] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [search, setSearch] = useState('');
+  const paymentMethod = pay.startsWith('mode:') ? pay.slice(5) : '';
+  const paymentMethodId = pay.startsWith('saved:') ? pay.slice(6) : '';
+  const saved = useSavedMethods();
+  const presets = rangePresets();
+
+  // Search runs shortly after typing stops, not once per keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchText), 300);
+    return () => clearTimeout(id);
+  }, [searchText]);
   const [sort, setSort] = useState('date_desc');
   const limit = 25;
 
@@ -132,7 +145,7 @@ export function HistoryScreen() {
     validTo,
     categoryId,
     userId,
-    paymentMethod,
+    pay,
     search,
     sort,
   ].join('|');
@@ -147,6 +160,7 @@ export function HistoryScreen() {
   if (categoryId) params.set('categoryId', categoryId);
   if (userId) params.set('userId', userId);
   if (paymentMethod) params.set('paymentMethod', paymentMethod);
+  if (paymentMethodId) params.set('paymentMethodId', paymentMethodId);
   if (search.trim()) params.set('q', search.trim());
   const [sortBy, sortOrder] = sort.split('_');
   params.set('sortBy', sortBy);
@@ -162,7 +176,7 @@ export function HistoryScreen() {
       validTo,
       categoryId,
       userId,
-      paymentMethod,
+      pay,
       search,
       sort,
       page,
@@ -188,11 +202,6 @@ export function HistoryScreen() {
       ]
     );
 
-  const setMonthRange = (m: string) => {
-    const b = monthBounds(m);
-    setFrom(b.from);
-    setTo(b.to);
-  };
   const shownMonth = from.slice(0, 7);
   const isFullMonth =
     !!from &&
@@ -209,7 +218,7 @@ export function HistoryScreen() {
     ((from || to) && !defaultRange) ||
     categoryId ||
     userId ||
-    paymentMethod ||
+    pay ||
     search
   );
 
@@ -224,7 +233,8 @@ export function HistoryScreen() {
     setTo('');
     setCategoryId('');
     setUserId('');
-    setPaymentMethod('');
+    setPay('');
+    setSearchText('');
     setSearch('');
     setSort('date_desc');
   };
@@ -242,11 +252,11 @@ export function HistoryScreen() {
           <Search size={16} color={colors.faint} />
           <TextInput
             className="flex-1 px-2.5 py-3 text-sm text-slate-900"
-            placeholder="Search by note, description..."
+            placeholder="Search note, category, person or amount..."
             placeholderTextColor={colors.faint}
             accessibilityLabel="Search expenses"
-            value={search}
-            onChangeText={setSearch}
+            value={searchText}
+            onChangeText={setSearchText}
             returnKeyType="search"
           />
         </View>
@@ -293,26 +303,17 @@ export function HistoryScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 8, paddingBottom: 10 }}
             >
-              <Chip
-                label="This month"
-                active={isFullMonth && shownMonth === currentMonth()}
-                onPress={() => setMonthRange(currentMonth())}
-              />
-              <Chip
-                label="Last month"
-                active={
-                  isFullMonth && shownMonth === shiftMonth(currentMonth(), -1)
-                }
-                onPress={() => setMonthRange(shiftMonth(currentMonth(), -1))}
-              />
-              <Chip
-                label="All time"
-                active={!from && !to}
-                onPress={() => {
-                  setFrom('');
-                  setTo('');
-                }}
-              />
+              {presets.map((p) => (
+                <Chip
+                  key={p.id}
+                  label={p.label}
+                  active={from === p.from && to === p.to}
+                  onPress={() => {
+                    setFrom(p.from);
+                    setTo(p.to);
+                  }}
+                />
+              ))}
             </ScrollView>
             <View className="flex-row gap-3">
               <View className="min-w-0 flex-1">
@@ -383,13 +384,8 @@ export function HistoryScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 8 }}
             >
-              {METHODS.map(([v, l]) => (
-                <Chip
-                  key={v || 'all'}
-                  label={l}
-                  active={paymentMethod === v}
-                  onPress={() => setPaymentMethod(v)}
-                />
+              {[...METHODS, ...(saved.data ?? []).map((m): [string, string] => [`saved:${m.id}`, m.label])].map(([v, l]) => (
+                <Chip key={v || 'all'} label={l} active={pay === v} onPress={() => setPay(v)} />
               ))}
             </ScrollView>
           </>
