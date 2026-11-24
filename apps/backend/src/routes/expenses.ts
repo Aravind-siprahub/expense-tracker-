@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '@repo/db';
 import type { Prisma } from '@repo/db';
 import {
@@ -20,6 +21,8 @@ import { methodLabel } from './paymentMethods';
 
 export const expenses = Router();
 expenses.use('/expenses', requireFamily);
+
+const writeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 120, standardHeaders: true });
 
 type Method = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 
@@ -100,6 +103,13 @@ expenses.get(
       to?: string;
       categoryId?: string;
       userId?: string;
+      paymentMethod?: Method;
+      paymentMethodId?: string;
+      q?: string;
+      sortBy?: 'date' | 'amount';
+      sortOrder?: 'asc' | 'desc';
+      page: number;
+      limit: number;
     }>(ExpenseQuerySchema, req.query);
     const where: Prisma.ExpenseWhereInput = { familyId: req.ctx.familyId };
     if (q.month) where.date = monthRange(q.month);
@@ -111,17 +121,60 @@ expenses.get(
     }
     if (q.categoryId) where.categoryId = q.categoryId;
     if (q.userId) where.userId = q.userId;
+    if (q.paymentMethod) where.paymentMethod = q.paymentMethod;
+    const and: Prisma.ExpenseWhereInput[] = [];
+    // One saved card / bank account. Saved methods are private to their owner, so the filter only ever
+    // matches the caller's own expenses: asking for someone else's method id returns nothing.
+    if (q.paymentMethodId) and.push({ paymentMethodId: q.paymentMethodId, userId: req.ctx.userId });
+    if (q.q) {
+      // Search the note, category name, who spent it and the amount ("1500" or "₹1,500.50").
+      // The caller's own saved card / account nickname is searchable too, but nobody else's.
+      const term = q.q;
+      const or: Prisma.ExpenseWhereInput[] = [
+        { note: { contains: term, mode: 'insensitive' } },
+        { category: { name: { contains: term, mode: 'insensitive' } } },
+        { user: { name: { contains: term, mode: 'insensitive' } } },
+        { userId: req.ctx.userId, savedMethod: { nickname: { contains: term, mode: 'insensitive' } } },
+      ];
+      const digits = term.replace(/[₹,\s]/g, '');
+      const rupees = Number(digits);
+      if (digits !== '' && /^\d+(\.\d{1,2})?$/.test(digits) && rupees > 0 && rupees <= 20_000_000) {
+        or.push({ amountPaise: Math.round(rupees * 100) });
+      }
+      and.push({ OR: or });
+    }
+    if (and.length) where.AND = and;
 
-    const [rows, sum] = await Promise.all([
+    const sortOrder = q.sortOrder ?? 'desc';
+    const orderBy: Prisma.ExpenseOrderByWithRelationInput[] =
+      q.sortBy === 'amount'
+        ? [{ amountPaise: sortOrder }, { date: 'desc' }]
+        : [{ date: sortOrder }, { createdAt: 'desc' }];
+
+    const page = q.page || 1;
+    const limit = q.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const [rows, sum, count] = await Promise.all([
       prisma.expense.findMany({
         where,
         include,
-        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
-        take: 500,
+        orderBy,
+        skip,
+        take: limit,
       }),
       prisma.expense.aggregate({ where, _sum: { amountPaise: true } }),
+      prisma.expense.count({ where }),
     ]);
-    res.json({ totalPaise: sum._sum.amountPaise ?? 0, items: rows.map((r) => shape(r, req.ctx.userId)) });
+
+    res.json({
+      totalPaise: sum._sum.amountPaise ?? 0,
+      totalCount: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit) || 1,
+      items: rows.map((r) => shape(r, req.ctx.userId)),
+    });
   }),
 );
 
@@ -139,6 +192,7 @@ expenses.get(
 
 expenses.post(
   '/expenses',
+  writeLimiter,
   wrap(async (req, res) => {
     const b = parse<ExpenseInput>(CreateExpenseSchema, req.body);
     await assertCategory(req.ctx.familyId!, b.categoryId);
@@ -173,6 +227,7 @@ async function loadOwned(req: Express.Request, id: string) {
 
 expenses.patch(
   '/expenses/:id',
+  writeLimiter,
   wrap(async (req, res) => {
     const existing = await loadOwned(req, req.params.id);
     const b = parse<Partial<ExpenseInput>>(UpdateExpenseSchema, req.body);
