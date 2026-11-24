@@ -18,7 +18,7 @@ export function SettingsScreen() {
         <Loading />
       </Screen>
     );
-  if (me.error || !me.data)
+  if (!me.data)
     return (
       <Screen title="Settings" subtitle="Profile and preferences">
         <Notice error={me.error} />

@@ -29,10 +29,12 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { useQuery } from '@tanstack/react-query';
-import { api } from './lib/api';
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError, api } from './lib/api';
 import { monthLabel, parseISODate, shiftMonth, toISODate } from './lib/format';
-import { useSlowConnection } from './lib/connection';
+import { restartWait, useSlowConnection, useSlowElapsedMs } from './lib/connection';
+import { WAKING_MESSAGE, waitStage } from './lib/waiting';
+import { warmUpServer } from './lib/warmup';
 import type { Me } from './lib/types';
 
 // Look and feel copied from the web app (apps/web-vite): same palette, rounded cards with a soft blue shadow,
@@ -88,7 +90,10 @@ export const useMe = (enabled = true) =>
   useQuery({
     queryKey: ['me'],
     queryFn: () => api<Me>('GET', '/me'),
-    retry: false,
+    // A sleeping server often times out the first request just before it finishes waking up, so try again
+    // (twice at most) when the problem is the connection. Any other answer (for example "log in again") is final.
+    retry: (count, error) => count < 2 && error instanceof ApiError && error.status === 0,
+    retryDelay: 1500,
     enabled,
   });
 
@@ -790,17 +795,24 @@ export function DateField({
 
 // ── Connection feedback and live refresh ─────────────────────────────────────
 
-/** Banner shown while the server is slow to answer (the free hosting plan sleeps; waking it takes a while). */
+/**
+ * Banner shown while the server is slow to answer (the free hosting plan sleeps; waking it takes a while).
+ * After 15 seconds it says the server is waking up; after 40 seconds it offers a Retry button.
+ */
 export function ConnectionBanner() {
   const slow = useSlowConnection();
+  const elapsed = useSlowElapsedMs();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   if (!slow) return null;
+  const stage = waitStage(elapsed);
   return (
     <View
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      pointerEvents="none"
-      className="flex-row items-center justify-center gap-2 border-b border-primary-200 bg-primary-50 px-4 pb-2.5"
+      // Lets taps pass through to the screen below, except on the Retry button.
+      pointerEvents="box-none"
+      className="items-center justify-center gap-1 border-b border-primary-200 bg-primary-50 px-4 pb-2.5"
       style={{
         position: 'absolute',
         top: 0,
@@ -810,10 +822,55 @@ export function ConnectionBanner() {
         paddingTop: insets.top + 10,
       }}
     >
-      <Loader size={16} color={colors.primary} />
-      <Text className="text-sm text-primary-800">
-        Connecting to your account. This may take a moment.
-      </Text>
+      <View className="flex-row items-center justify-center gap-2" pointerEvents="none">
+        <Loader size={16} color={colors.primary} />
+        <Text className="text-sm text-primary-800">
+          {stage === 'normal' ? 'Connecting to your account. This may take a moment.' : WAKING_MESSAGE}
+        </Text>
+      </View>
+      {stage === 'retry' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Retry"
+          onPress={() => {
+            restartWait();
+            void warmUpServer();
+            void qc.refetchQueries({ type: 'active' });
+          }}
+          className="rounded-lg border border-primary-300 bg-white px-4 py-1.5 active:bg-primary-50"
+        >
+          <Text className="text-sm font-semibold text-primary-700">Retry</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * A small "Updating…" chip while saved data is on screen and fresh data is being fetched in the background.
+ * It appears only if the refresh takes more than a moment, and gives way to the connection banner when that shows.
+ */
+export function UpdatingIndicator() {
+  const fetching = useIsFetching() > 0;
+  const slow = useSlowConnection();
+  const insets = useSafeAreaInsets();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    // Appear only after half a second of fetching; disappear as soon as it stops.
+    const id = setTimeout(() => setShow(fetching), fetching ? 500 : 0);
+    return () => clearTimeout(id);
+  }, [fetching]);
+  if (!show || slow) return null;
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel="Updating"
+      className="flex-row items-center gap-1.5 rounded-full border border-primary-200 bg-white/95 px-2.5 py-1"
+      style={{ position: 'absolute', top: insets.top + 6, right: 12, zIndex: 40, ...cardShadow }}
+    >
+      <ActivityIndicator size="small" color={colors.primary} />
+      <Text className="text-xs font-medium text-primary-700">Updating…</Text>
     </View>
   );
 }

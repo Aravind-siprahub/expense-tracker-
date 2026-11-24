@@ -2,11 +2,14 @@ import { View } from 'react-native';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { BarChart3, Ellipsis, LayoutDashboard, Plus, Receipt, type LucideIcon } from 'lucide-react-native';
 import { useSession } from './session';
-import { Btn, ConnectionBanner, Loading, Notice, colors, navShadow, useMe } from './ui';
+import { ConnectionBanner, UpdatingIndicator, colors, navShadow, useMe } from './ui';
+import { BootScreen } from './BootScreen';
+import { restartWait } from './lib/connection';
+import { warmUpServer } from './lib/warmup';
 import { AuthScreen } from './screens/AuthScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -92,25 +95,27 @@ export function Root() {
   const { ready, signedIn, signOut } = useSession();
   const me = useMe(ready && signedIn);
 
+  // Starts the wait over and asks the server to wake up again, then tries the account request once more.
+  const retry = () => {
+    restartWait();
+    void warmUpServer();
+    void me.refetch();
+  };
+
+  // The screen is never blank: saved (or freshly loaded) account data always wins, even if the latest request failed;
+  // with no data yet we show the logo and a dashboard outline, and a Retry option if the request failed.
   let body;
-  if (!ready) body = <Loading />;
+  if (!ready) body = <BootScreen />;
   else if (!signedIn) body = <AuthScreen />;
-  else if (me.isLoading) body = <Loading />;
-  else if (me.error || !me.data) {
-    body = (
-      <SafeAreaView className="flex-1 justify-center gap-4 p-6" style={{ backgroundColor: colors.page }}>
-        <Notice error={me.error} />
-        <Btn label="Try again" onPress={() => me.refetch()} />
-        <Btn label="Log out" variant="ghost" onPress={signOut} />
-      </SafeAreaView>
-    );
-  } else if (!me.data.family) body = <OnboardingScreen name={me.data.user.name} />;
-  else body = <Main />;
+  else if (me.data) body = me.data.family ? <Main /> : <OnboardingScreen name={me.data.user.name} />;
+  else if (me.error) body = <BootScreen error={me.error.message} onRetry={retry} onLogout={signOut} />;
+  else body = <BootScreen onRetry={retry} />;
 
   return (
     <View style={{ flex: 1 }}>
       {body}
       <ConnectionBanner />
+      <UpdatingIndicator />
       <StatusBar style="dark" />
     </View>
   );

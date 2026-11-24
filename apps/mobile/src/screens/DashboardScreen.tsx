@@ -28,12 +28,12 @@ import {
 import type { BudgetView, Summary } from '../lib/types';
 import { categoryVisual } from '../categoryIcons';
 import { Donut, EmptyDonut, Progress } from '../Charts';
+import { DashboardSkeleton } from '../Skeleton';
 import {
   Btn,
   colors,
   EmptyState,
   IconTile,
-  Loading,
   MonthSwitcher,
   Notice,
   Panel,
@@ -168,7 +168,7 @@ export function DashboardScreen() {
       />
       <MonthSwitcher value={month} onChange={setMonth} />
       <Notice error={q.error} />
-      {q.isLoading && <Loading />}
+      {q.isLoading && <DashboardSkeleton />}
       {s && (
         <>
           {activeOverBudget.length > 0 ? (

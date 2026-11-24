@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { loadToken, saveToken, setUnauthorizedHandler } from './lib/api';
+import { clearPersistedCache } from './lib/cache';
 
 interface Session {
   ready: boolean;
@@ -29,6 +30,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await saveToken(null);
     qc.clear();
+    await clearPersistedCache();
     setExpired(false);
     setSignedIn(false);
   }, [qc]);
@@ -37,6 +39,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async (token: string) => {
       await saveToken(token);
       qc.clear();
+      await clearPersistedCache();
       setExpired(false);
       setSignedIn(true);
     },
