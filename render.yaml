@@ -35,7 +35,13 @@ services:
         sync: false
       - key: CORS_ORIGINS # the same Vercel address
         sync: false
-      - key: RESEND_API_KEY # email (Render's free plan blocks Gmail SMTP)
+      - key: ENTRA_TENANT_ID # email: Microsoft Entra directory (tenant) ID
         sync: false
-      - key: MAIL_FROM # e.g. Family Expense Tracker <noreply@yourdomain.com>
+      - key: ENTRA_CLIENT_ID # email: app registration (client) ID
+        sync: false
+      - key: ENTRA_CLIENT_SECRET # email: the client secret VALUE (keep it secret)
+        sync: false
+      - key: MAIL_SENDER # email: the no-reply mailbox, e.g. noreply@yourcompany.com
+        sync: false
+      - key: MAIL_FROM_NAME # optional display name, default "Expense Tracker"
         sync: false

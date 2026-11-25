@@ -2,7 +2,7 @@
 // Gmail, Outlook and phone mail apps render reliably. Every email also has a plain-text
 // version for clients that don't show HTML.
 
-const BRAND = 'Family Expense Tracker';
+const BRAND = 'Expense Tracker';
 const BLUE = '#2563eb';
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
@@ -61,7 +61,7 @@ function layout(opts: { preheader: string; title: string; body: string; footer: 
           <h1 style="margin:0 0 16px;font-size:22px;line-height:30px;color:#111827;">${esc(opts.title)}</h1>
           ${opts.body}
         </td></tr>
-        <tr><td style="padding:16px 8px 0;font-family:${FONT};font-size:12px;line-height:18px;color:#6b7280;text-align:center;">${opts.footer}</td></tr>
+        <tr><td style="padding:16px 8px 0;font-family:${FONT};font-size:12px;line-height:18px;color:#6b7280;text-align:center;">${opts.footer}<br><br>This is an automated message from a no-reply address. Please don't reply to this email.</td></tr>
       </table>
     </td></tr>
   </table>
@@ -83,7 +83,7 @@ export function welcomeEmail(o: { name: string; appUrl: string }): Email {
         '<strong>Add your income</strong> and set a monthly budget.',
         '<strong>Add expenses</strong> from the web or your phone, in under 30 seconds.',
       ]) +
-      button('Open Family Expense Tracker', o.appUrl),
+      button('Open Expense Tracker', o.appUrl),
     footer: `You received this because an account was created with this email address.<br>If that wasn't you, you can ignore this message.`,
   });
   const text =

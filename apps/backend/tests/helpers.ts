@@ -8,9 +8,10 @@ import { randomBytes } from 'crypto';
 
 // Never send real email from tests, and make sure the settings the app needs exist.
 // (Set before the app is imported, because the app reads them when it loads.)
-process.env.SMTP_USER = '';
-process.env.SMTP_PASS = '';
-process.env.RESEND_API_KEY = '';
+process.env.ENTRA_TENANT_ID = '';
+process.env.ENTRA_CLIENT_ID = '';
+process.env.ENTRA_CLIENT_SECRET = '';
+process.env.MAIL_SENDER = '';
 process.env.JWT_SECRET ||= randomBytes(24).toString('base64');
 process.env.PAYMENT_ENCRYPTION_KEY ||= randomBytes(32).toString('base64');
 
