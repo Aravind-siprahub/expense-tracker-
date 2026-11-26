@@ -60,7 +60,8 @@ app.use(
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/', (_req, res) => {
-  res.json({ ok: true, service: 'family-expense-tracker-api' });
+  // RENDER_GIT_COMMIT is set by Render to the commit this deploy was built from. It lets anyone check which version is live.
+  res.json({ ok: true, service: 'family-expense-tracker-api', commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null });
 });
 
 app.use(auth, family, categories, expenses, income, budgets, summary, paymentMethods);
