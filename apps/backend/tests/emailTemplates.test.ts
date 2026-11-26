@@ -23,6 +23,10 @@ describe('branded email layout (every template)', () => {
         assert.ok(mail.html.indexOf('<img') < mail.html.indexOf('<h1'), 'logo comes before the title');
       });
 
+      it('rounds the logo corners so its white background looks intentional in dark mode', () => {
+        assert.match(mail.html, /<img [^>]*style="[^"]*border-radius:16px/);
+      });
+
       it('uses the logo colours, a light-gray page and a white card', () => {
         for (const c of ['#0040a8', '#e02020', '#50a038', '#eef1f5', '#ffffff']) assert.ok(mail.html.includes(c), c);
       });

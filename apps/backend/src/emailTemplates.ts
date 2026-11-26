@@ -107,7 +107,7 @@ function layout(opts: { preheader: string; title: string; body: string; footer: 
           </tr></table>
         </td></tr>
         <tr><td class="px" bgcolor="#ffffff" style="background:#ffffff;border:1px solid ${LINE};border-top:0;border-radius:0 0 14px 14px;padding:32px 32px 28px;font-family:${FONT};">
-          <img src="cid:${LOGO_CID}" alt="${BRAND}" width="${LOGO_SHOWN_WIDTH}" height="${LOGO_SHOWN_HEIGHT}" style="display:block;margin:0 auto 24px;width:${LOGO_SHOWN_WIDTH}px;max-width:${LOGO_SHOWN_WIDTH}px;height:auto;border:0;outline:none;text-decoration:none;">
+          <img src="cid:${LOGO_CID}" alt="${BRAND}" width="${LOGO_SHOWN_WIDTH}" height="${LOGO_SHOWN_HEIGHT}" style="display:block;margin:0 auto 24px;width:${LOGO_SHOWN_WIDTH}px;max-width:${LOGO_SHOWN_WIDTH}px;height:auto;border:0;border-radius:16px;outline:none;text-decoration:none;">
           <h1 class="h1" style="margin:0 0 18px;font-family:${FONT};font-size:22px;line-height:30px;color:${BLUE};text-align:center;">${esc(opts.title)}</h1>
           ${opts.body}
         </td></tr>
