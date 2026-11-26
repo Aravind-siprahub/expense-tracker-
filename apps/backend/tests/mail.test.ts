@@ -93,6 +93,23 @@ describe('sending through Microsoft Graph', () => {
     assert.equal(body.saveToSentItems, false);
   });
 
+  it('attaches the logo inline when the HTML refers to it (cid), and attaches nothing otherwise', async () => {
+    const ms = fakeMicrosoft();
+    const mailer = createMailer(CONFIG, ms.fetchImpl);
+    await mailer.send('a@example.test', 'S', 't', '<img src="cid:expense-tracker-logo" alt="logo">');
+    const withLogo = JSON.parse(String(ms.sends()[0].init.body)).message;
+    assert.equal(withLogo.attachments.length, 1);
+    const att = withLogo.attachments[0];
+    assert.equal(att['@odata.type'], '#microsoft.graph.fileAttachment');
+    assert.equal(att.contentId, 'expense-tracker-logo');
+    assert.equal(att.isInline, true);
+    assert.equal(att.contentType, 'image/png');
+    assert.equal(Buffer.from(att.contentBytes, 'base64').subarray(1, 4).toString(), 'PNG');
+
+    await mailer.send('a@example.test', 'S', 't', '<p>no logo here</p>');
+    assert.equal('attachments' in JSON.parse(String(ms.sends()[1].init.body)).message, false);
+  });
+
   it('sends plain text when there is no HTML version', async () => {
     const ms = fakeMicrosoft();
     await createMailer(CONFIG, ms.fetchImpl).send('a@example.test', 'S', 'just text');

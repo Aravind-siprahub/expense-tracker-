@@ -1,3 +1,5 @@
+import { EMAIL_LOGO_PNG_BASE64, LOGO_CID } from './emailLogo';
+
 export const WEB_URL = process.env.WEB_URL ?? 'http://localhost:3000';
 
 // Email is sent through Microsoft Graph, signed in as an Entra ID (Azure AD) app registration (client credentials flow):
@@ -122,12 +124,28 @@ export function createMailer(config: MailConfig | null, fetchImpl: FetchLike = (
           console.error('[mail] not sent: the recipient is not a valid email address');
           return false;
         }
+        // The logo travels inside the email (an inline attachment) when the HTML refers to it as cid:..., so it shows even
+        // when the reader's mail app blocks remote images. Nothing else about the message changes.
+        const attachments =
+          html && html.includes(`cid:${LOGO_CID}`)
+            ? [
+                {
+                  '@odata.type': '#microsoft.graph.fileAttachment',
+                  name: 'expense-tracker-logo.png',
+                  contentType: 'image/png',
+                  contentBytes: EMAIL_LOGO_PNG_BASE64,
+                  contentId: LOGO_CID,
+                  isInline: true,
+                },
+              ]
+            : undefined;
         const payload = {
           message: {
             subject,
             body: { contentType: html ? 'HTML' : 'Text', content: html ?? text },
             toRecipients: [{ emailAddress: { address: to } }],
             from: { emailAddress: { address: config.sender, name: config.senderName } },
+            ...(attachments ? { attachments } : {}),
           },
           saveToSentItems: false,
         };

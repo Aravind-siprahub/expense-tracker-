@@ -184,7 +184,7 @@ describe('request validation', () => {
 });
 
 describe('the invite email', () => {
-  it('shows the verification code and the join link, and escapes names', async () => {
+  it('shows the invite code (no one-click join link), and escapes names', async () => {
     const { inviteEmail } = await import('../src/emailTemplates');
     const mail = inviteEmail({
       inviter: 'Rajesh <script>',
@@ -195,10 +195,10 @@ describe('the invite email', () => {
     });
     for (const body of [mail.html, mail.text]) {
       assert.ok(body.includes('ABCD-2345'), 'code is shown');
-      assert.ok(body.includes('http://localhost:3000/join?token=abc'), 'link is included');
+      assert.ok(!body.includes('/join?token='), 'the join link is not in the email');
     }
     assert.ok(!/<script>/.test(mail.html), 'html is escaped');
     assert.match(mail.html, /Sharma &amp; Sons/);
-    assert.match(mail.text, /Create an account or log in with priya@example.com/);
+    assert.match(mail.text, /Create an account or log in using the invited email address \(priya@example.com\)/);
   });
 });
